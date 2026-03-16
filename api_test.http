@@ -1,0 +1,111 @@
+### Variabel Global
+@baseUrl = http://localhost:8080
+@adminKey = secret-admin-key
+@staffKey = secret-staff-key
+@contentType = application/json
+
+### ==========================================
+### 1. KATEGORI (CATEGORIES)
+### ==========================================
+
+# Ambil semua kategori (Electronics, Furniture, Stationery)
+GET {{baseUrl}}/categories?page=1&limit=100
+X-API-KEY: {{staffKey}}
+
+###
+
+### ==========================================
+### 2. BARANG (ITEMS)
+### ==========================================
+
+# Ambil semua daftar barang beserta stoknya
+# GET {{baseUrl}}/items?page=1&limit=10&name=lo&category=1
+GET {{baseUrl}}/items?page=1&limit=10
+X-API-KEY: {{staffKey}}
+
+###
+
+# Cari barang spesifik (Misal: MacBook Pro M2)
+# Sesuaikan ID 1 sesuai hasil insert di DB
+GET {{baseUrl}}/items/1
+X-API-KEY: {{staffKey}}
+
+###
+
+# Export csv, semua daftar barang beserta stoknya
+GET {{baseUrl}}/items/export
+X-API-KEY: {{staffKey}}
+
+###
+
+# Tambah barang baru (Contoh: Monitor) ke kategori Electronics (ID: 1)
+POST {{baseUrl}}/items/create
+Content-Type: {{contentType}}
+X-API-KEY: {{staffKey}}
+
+{
+    "category_id": 1,
+    "sku": "ELC-MON-003",
+    "name": "Dell UltraSharp 27-inch",
+    "price": 8500000.00,
+    "stock": 5
+}
+
+###
+
+# Update barang
+PUT {{baseUrl}}/items/5
+Content-Type: {{contentType}}
+X-API-KEY: {{adminKey}}
+
+{
+    "category_id": 1,    
+    "name": "Dell UltraSharp 27-inch ver 2",
+    "price": 8500000.00
+}
+
+###
+
+### ==========================================
+### 3. RIWAYAT STOK (STOCK LOGS)
+### ==========================================
+
+# BELUM ADA
+# Lihat riwayat keluar/masuk barang tertentu (Item ID: 2)
+# GET {{baseUrl}}/items/stock-logs?page=1&limit=10&item_id=1&type=IN
+GET {{baseUrl}}/items/stock-logs?page=1&limit=10&item_id=1
+X-API-KEY: {{staffKey}}
+
+###
+
+# Catat transaksi stok baru (OUT/Barang Keluar)
+# Simulasi: Barang terjual atau rusak (seperti data dummy-mu)
+# "reason": "Masuk barang baru"
+# "reason": "Sold to customer - Order #INV001"
+POST {{baseUrl}}/items/update-stock
+Content-Type: {{contentType}}
+X-API-KEY: {{adminKey}}
+
+{
+    "item_id": 1,
+    "type": "OUT",
+    "quantity": 1,
+    "reason": "Sold to customer - Order #INV002"
+}
+
+###
+
+# Delete barang (soft delete)- ADMIN ONLY
+DELETE  {{baseUrl}}/items/2
+Content-Type: {{contentType}}
+X-API-KEY: {{adminKey}}
+
+###
+
+### ==========================================
+### 4. AUTHENTICATION TEST
+### ==========================================
+
+# Test request tanpa API Key (Harusnya Error 401 Unauthorized)
+GET {{baseUrl}}/items
+Accept: {{contentType}}

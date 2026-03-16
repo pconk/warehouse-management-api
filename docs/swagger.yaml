@@ -1,0 +1,450 @@
+basePath: /
+definitions:
+  entity.Category:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  entity.Item:
+    properties:
+      category_id:
+        type: integer
+      category_name:
+        description: 'Opsional: Jika ingin join data kategori'
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+      sku:
+        minLength: 3
+        type: string
+      stock:
+        minimum: 0
+        type: integer
+      updated_at:
+        type: string
+    required:
+    - category_id
+    - name
+    - price
+    - sku
+    type: object
+  entity.StockLog:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      item_id:
+        type: integer
+      item_name:
+        description: Dari Join
+        type: string
+      item_sku:
+        description: Dari Join
+        type: string
+      quantity:
+        type: integer
+      reason:
+        type: string
+      type:
+        description: IN / OUT
+        type: string
+      user_id:
+        type: integer
+      user_name:
+        type: string
+    type: object
+  entity.UpdateItemRequest:
+    properties:
+      category_id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+    required:
+    - category_id
+    - name
+    - price
+    type: object
+  entity.UpdateStockRequest:
+    properties:
+      item_id:
+        type: integer
+      quantity:
+        type: integer
+      reason:
+        type: string
+      type:
+        enum:
+        - IN
+        - OUT
+        type: string
+    required:
+    - item_id
+    - quantity
+    - type
+    type: object
+  helper.PaginationMeta:
+    properties:
+      current_page:
+        type: integer
+      limit:
+        type: integer
+      total_items:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  helper.WebResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  helper.WebResponsePaging:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      pagination:
+        $ref: '#/definitions/helper.PaginationMeta'
+      status:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io
+  description: |-
+    API untuk manajemen stok gudang.
+    Testing Keys:
+    - Admin: `secret-admin-key` (Full Access)
+    - Staff: `secret-staff-key` (Read & Update Only)
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org
+  termsOfService: http://swagger.io
+  title: Warehouse Management API
+  version: "1.0"
+paths:
+  /categories:
+    get:
+      description: Mengambil daftar kategori barang untuk keperluan dropdown atau
+        filter
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Data per halaman
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.WebResponsePaging'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entity.Category'
+                  type: array
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Ambil semua kategori
+      tags:
+      - categories
+  /health:
+    get:
+      description: Mengecek status aplikasi dan koneksi database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+      summary: Health Check
+      tags:
+      - health
+  /items:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil daftar barang dengan fitur paging dan filter
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Data per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Filter nama
+        in: query
+        name: name
+        type: string
+      - description: Filter kategori ID
+        in: query
+        name: category_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.WebResponsePaging'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entity.Item'
+                  type: array
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Ambil semua barang
+      tags:
+      - items
+  /items/{id}:
+    delete:
+      description: Menghapus barang secara logis (data tetap di DB)
+      parameters:
+      - description: ID Barang
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Soft delete barang
+      tags:
+      - admin
+    get:
+      description: Mengambil detail satu barang berdasarkan ID
+      parameters:
+      - description: ID Barang
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entity.Item'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Ambil barang detail
+      tags:
+      - items
+    put:
+      consumes:
+      - application/json
+      description: Mengubah Nama, Harga, atau Kategori (SKU & Stok terkunci)
+      parameters:
+      - description: ID Barang
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data update
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/entity.UpdateItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update metadata barang
+      tags:
+      - admin
+  /items/create:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Contoh data JSON:
+        `{"category_id":1,"sku":"ELC-MON-003","name":"Dell UltraSharp 27-inch","price":8500000.00,"stock":5}`
+
+        **Note:** Pastikan SKU belum terdaftar di sistem.
+      parameters:
+      - description: Data barang
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Item'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Tambah barang baru
+      tags:
+      - items
+  /items/export:
+    get:
+      description: Mengunduh seluruh daftar barang (yang belum dihapus) dalam format
+        file .csv
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: items_export.csv
+          schema:
+            type: file
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Export data barang ke CSV
+      tags:
+      - items
+  /items/stock-logs:
+    get:
+      description: Mengambil log aktivitas stok (IN/OUT) dengan filter item dan tipe
+      parameters:
+      - default: 1
+        description: Halaman
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Data per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Filter berdasarkan ID Barang
+        in: query
+        name: item_id
+        type: integer
+      - description: Filter tipe log (IN/OUT)
+        enum:
+        - IN
+        - OUT
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.WebResponsePaging'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/entity.StockLog'
+                  type: array
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Ambil riwayat stok
+      tags:
+      - items
+  /items/update-stock:
+    post:
+      consumes:
+      - application/json
+      description: Menambah (IN) atau mengurangi (OUT) stok dengan audit log
+      parameters:
+      - description: Request update stok
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/entity.UpdateStockRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update stok barang
+      tags:
+      - admin
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Masukkan API Key kamu. Format: [your-api-key]'
+    in: header
+    name: X-API-KEY
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: Endpoint internal yang memerlukan hak akses Administrator
+  name: admin
+- description: Endpoint kategori barang
+  name: categories
+- description: Endpoint berhubungan dengan barang dan inventaris
+  name: items
+- description: Endpoint untuk pengecekan koneksi database
+  name: health

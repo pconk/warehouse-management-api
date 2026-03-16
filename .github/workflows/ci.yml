@@ -1,0 +1,44 @@
+name: Go CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-lint:
+    name: Code Quality & Unit Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          # Menggunakan check-latest agar mendapatkan versi toolchain terbaru
+          go-version: '1.26'
+          check-latest: true 
+
+      - name: Install Swaggo
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      - name: Generate Swagger & Check Diff
+        run: |
+          swag init -g cmd/api/main.go
+          git diff --exit-code docs/ || (echo "Error: Swagger docs not updated! Run 'swag init' locally." && exit 1)
+
+      - name: Run Unit Tests
+        # Menjalankan test di folder handler sesuai strukturmu
+        run: go test -v -cover ./internal/handler/...
+
+  build-docker:
+    name: Container Build Check
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Dockerfile Build
+        # Ini akan mengetes apakah Dockerfile 1.26-alpine kamu valid
+        run: docker build -t warehouse-api:latest .
