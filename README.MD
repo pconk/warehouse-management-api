@@ -1,4 +1,4 @@
-![Build Status](https://github.com/pconk/warehouse-management-api)
+[![Go CI](https://github.com/pconk/warehouse-management-api/actions/workflows/ci.yml/badge.svg)](https://github.com/pconk/warehouse-management-api/actions/workflows/ci.yml)
 
 ------------------------------
 Warehouse Management API 📦
@@ -24,7 +24,7 @@ API sederhana namun production-ready untuk mengelola stok gudang, kategori baran
 
 📁 Struktur Project
 Mengikuti standar Clean Architecture sederhana:
-
+```text
 .
 ├── cmd/api/main.go          # Entry point aplikasi
 ├── internal/
@@ -36,6 +36,7 @@ Mengikuti standar Clean Architecture sederhana:
 │   └── helper/              # Response wrapper, Pagination helper
 └── pkg/
     └── database/            # Database connection driver
+```
 
 ## 🧪 Testing Strategy
 
