@@ -1,6 +1,5 @@
-<!-- ![Build Status](https://github.com) -->
+![Build Status](https://github.com/pconk/warehouse-management-api)
 
-Berikut adalah draf README.md yang profesional untuk project GitHub kamu. Ini dirancang agar recruiter atau developer lain langsung paham bahwa kamu mengerti standar industri (Clean Code, Security, & Architecture).
 ------------------------------
 Warehouse Management API 📦
 API sederhana namun production-ready untuk mengelola stok gudang, kategori barang, dan riwayat mutasi stok. Dibangun menggunakan Go (Golang) dengan fokus pada performa, keamanan, dan integritas data.
