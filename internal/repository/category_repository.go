@@ -13,7 +13,7 @@ type CategoryRepositoryInterface interface {
 	FindAll(limit, offset int) ([]entity.Category, int64, error)
 }
 
-func NewCategoryRepository(db *sql.DB) *CategoryRepository {
+func NewCategoryRepository(db *sql.DB) CategoryRepositoryInterface {
 	return &CategoryRepository{db: db}
 }
 

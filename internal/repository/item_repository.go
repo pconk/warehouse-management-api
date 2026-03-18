@@ -21,7 +21,7 @@ type ItemRepositoryInterface interface {
 	GetStockLogs(limit, offset int, itemID int, logType string) ([]entity.StockLog, int64, error)
 }
 
-func NewItemRepository(db *sql.DB) *ItemRepository {
+func NewItemRepository(db *sql.DB) ItemRepositoryInterface {
 	return &ItemRepository{db: db}
 }
 

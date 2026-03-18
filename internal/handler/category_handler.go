@@ -13,7 +13,7 @@ type CategoryHandler struct {
 	Logger *slog.Logger
 }
 
-func NewCategoryHandler(repo *repository.CategoryRepository, logger *slog.Logger) *CategoryHandler {
+func NewCategoryHandler(repo repository.CategoryRepositoryInterface, logger *slog.Logger) *CategoryHandler {
 	return &CategoryHandler{
 		Repo:   repo,
 		Logger: logger,

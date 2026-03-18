@@ -26,7 +26,7 @@ type ItemHandler struct {
 	Validate *validator.Validate
 }
 
-func NewItemHandler(repo *repository.ItemRepository, logger *slog.Logger) *ItemHandler {
+func NewItemHandler(repo repository.ItemRepositoryInterface, logger *slog.Logger) *ItemHandler {
 	return &ItemHandler{
 		Repo:     repo,
 		Logger:   logger,
