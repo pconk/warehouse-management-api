@@ -136,6 +136,9 @@ Admin Only
 
 | Method | Endpoint            | Description       |
 | ------ | ------------------- | ----------------- |
+| PUT    | /categories/{id}    | Update kategori   |
+| DELETE | /categories/{id}    | delete kategori   |
+| POST   | /categories         | Tambah kategori   |
 | PUT    | /items/{id}         | Update barang     |
 | DELETE | /items/{id}         | Soft delete barang|
 | POST   | /items/update-stock | Update stok       |
