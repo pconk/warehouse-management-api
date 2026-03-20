@@ -13,8 +13,11 @@ import (
 	"warehouse-management-api/internal/config"
 	"warehouse-management-api/internal/handler"
 	"warehouse-management-api/internal/middleware"
+	"warehouse-management-api/internal/queue"
 	"warehouse-management-api/internal/repository"
+	"warehouse-management-api/internal/service"
 	"warehouse-management-api/pkg/database"
+	"warehouse-management-api/pkg/redis"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -61,6 +64,12 @@ func main() {
 		logger.Error("configuration file not found")
 		os.Exit(1)
 	}
+	logger.Info("print env", "cfg", cfg)
+
+	if cfg.RedisAddress == "" {
+		logger.Error("REDIS_ADDRESS is invalid")
+		os.Exit(1)
+	}
 
 	// Koneksi DB
 	db, err := database.ConnectDB(cfg.Db)
@@ -69,15 +78,22 @@ func main() {
 	}
 	defer db.Close()
 
+	// Init redis
+	rdb := redis.NewRedisClient(cfg.RedisAddress)
+	emailProducer := queue.NewEmailProducer(rdb, cfg.QueueName)
+
 	// Init Repository
 	healthRepo := repository.NewHealthRepository(db)
 	itemRepo := repository.NewItemRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	catRepo := repository.NewCategoryRepository(db)
 
+	// Init service
+	itemService := service.NewItemService(itemRepo, emailProducer, logger, cfg)
+
 	// Init Handler (Sambil lempar repo-nya)
 	healthHandler := handler.NewHealthHandler(healthRepo, logger)
-	itemHandler := handler.NewItemHandler(itemRepo, logger)
+	itemHandler := handler.NewItemHandler(itemRepo, logger, itemService)
 	catHandler := handler.NewCategoryHandler(catRepo, logger)
 
 	// Inisialisasi Middleware dengan API Key dari .env
@@ -94,7 +110,7 @@ func main() {
 
 	r.Get("/health", healthHandler.Check)
 	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8080/swagger/doc.json"), // Sesuaikan port kamu
+		httpSwagger.URL("http://localhost:"+cfg.ApiPort+"/swagger/doc.json"), // Sesuaikan port kamu
 	))
 
 	// Grouping untuk route yang butuh Auth

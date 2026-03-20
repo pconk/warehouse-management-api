@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"warehouse-management-api/internal/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +16,7 @@ func TestHealthHandler_Check(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	t.Run("Success - Service Healthy", func(t *testing.T) {
-		mockRepo := new(MockHealthRepo)
+		mockRepo := new(repository.MockHealthRepo)
 		mockRepo.On("Ping").Return(nil) // Mock sukses
 
 		handler := NewHealthHandler(mockRepo, logger)
@@ -30,7 +31,7 @@ func TestHealthHandler_Check(t *testing.T) {
 	})
 
 	t.Run("Failure - DB Connection Error", func(t *testing.T) {
-		mockRepo := new(MockHealthRepo)
+		mockRepo := new(repository.MockHealthRepo)
 		mockRepo.On("Ping").Return(errors.New("db connection lost")) // Mock error
 
 		handler := NewHealthHandler(mockRepo, logger)

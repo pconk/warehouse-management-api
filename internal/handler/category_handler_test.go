@@ -9,13 +9,14 @@ import (
 	"os"
 	"testing"
 	"warehouse-management-api/internal/entity"
+	"warehouse-management-api/internal/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestGetAllCategories_Success(t *testing.T) {
-	mockRepo := new(MockCategoryRepo)
+	mockRepo := new(repository.MockCategoryRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := CategoryHandler{Repo: mockRepo, Logger: logger}
 
@@ -31,7 +32,7 @@ func TestGetAllCategories_Success(t *testing.T) {
 }
 
 func TestGetAllCategories_DatabaseError(t *testing.T) {
-	mockRepo := new(MockCategoryRepo)
+	mockRepo := new(repository.MockCategoryRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := CategoryHandler{Repo: mockRepo, Logger: logger}
 

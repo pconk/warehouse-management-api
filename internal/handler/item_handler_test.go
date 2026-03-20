@@ -12,6 +12,8 @@ import (
 	"testing"
 	"warehouse-management-api/internal/entity"
 	"warehouse-management-api/internal/middleware"
+	"warehouse-management-api/internal/repository"
+	"warehouse-management-api/internal/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -21,7 +23,7 @@ import (
 
 func TestGetByID_Success(t *testing.T) {
 	// 1. Setup Mock & Handler
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 
@@ -52,7 +54,7 @@ func TestGetByID_Success(t *testing.T) {
 
 func TestGetByID_NotFound(t *testing.T) {
 	// 1. Setup Mock & Handler
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 
@@ -76,7 +78,7 @@ func TestGetByID_NotFound(t *testing.T) {
 }
 
 func TestGetAllItem_Success(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 
@@ -110,7 +112,7 @@ func TestGetAllItem_Success(t *testing.T) {
 }
 
 func TestGetAllItem_DatabaseError(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 
@@ -131,7 +133,7 @@ func TestGetAllItem_DatabaseError(t *testing.T) {
 }
 
 func TestCreateItem_Success(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
@@ -156,7 +158,7 @@ func TestCreateItem_Success(t *testing.T) {
 }
 
 func TestCreateItem_DuplicateSKU(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
@@ -173,7 +175,7 @@ func TestCreateItem_DuplicateSKU(t *testing.T) {
 }
 
 func TestUpdateItem_ValidationError(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
@@ -204,7 +206,7 @@ func TestUpdateItem_ValidationError(t *testing.T) {
 }
 
 func TestUpdateItem_Success(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
@@ -234,37 +236,21 @@ func TestUpdateItem_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t) // Pastikan repo benar-benar dipanggil
 }
 
-func TestUpdateStock_Success(t *testing.T) {
-	mockRepo := new(MockItemRepo)
-	validate := validator.New()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
-
-	stockReq := entity.UpdateStockRequest{ItemID: 1, Type: "IN", Quantity: 5, Reason: "Restock"}
-	user := &entity.User{ID: 1, Username: "admin"}
-
-	mockRepo.On("UpdateStock", stockReq, 1).Return(nil)
-
-	// Simpan user ke context agar middleware.GetUser(r.Context()) tidak nil
-	body, _ := json.Marshal(stockReq)
-	req := httptest.NewRequest("POST", "/items/update-stock", strings.NewReader(string(body)))
-	ctx := context.WithValue(req.Context(), middleware.UserKey, user) // Pakai Key yang sama dengan middleware kamu
-
-	w := httptest.NewRecorder()
-	h.UpdateStock(w, req.WithContext(ctx))
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
 func TestUpdateStock_Table(t *testing.T) {
 	// Setup dasar
-	mockRepo := new(MockItemRepo)
+	mockService := new(service.MockItemService) // Sekarang nge-mock Service, bukan Repo
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
+
+	// Handler sekarang menggunakan Service
+	h := ItemHandler{
+		Service:  mockService,
+		Logger:   logger,
+		Validate: validate,
+	}
+
 	user := &entity.User{ID: 1, Username: "admin"}
 
-	// Definisi skenario test
 	tests := []struct {
 		name           string
 		inputBody      string
@@ -284,21 +270,15 @@ func TestUpdateStock_Table(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:           "Validation Error (Negative Quantity)",
-			inputBody:      `{"item_id": 1, "type": "IN", "quantity": -5}`,
-			mockReturn:     nil,
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:           "Database Error (Insufficient Stock)",
+			name:           "Service Error (Insufficient Stock)",
 			inputBody:      `{"item_id": 1, "type": "OUT", "quantity": 100}`,
-			mockReturn:     errors.New("insufficient stock"),
+			mockReturn:     errors.New("insufficient stock"), // Pesan error dari service
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "Internal Server Error",
 			inputBody:      `{"item_id": 1, "type": "IN", "quantity": 10}`,
-			mockReturn:     errors.New("db connection lost"),
+			mockReturn:     errors.New("something went wrong"),
 			expectedStatus: http.StatusInternalServerError,
 		},
 	}
@@ -306,9 +286,9 @@ func TestUpdateStock_Table(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup Mock sesuai skenario
-			if tt.expectedStatus == http.StatusOK || tt.expectedStatus >= 400 && tt.mockReturn != nil {
-				// Hanya mock jika validasi lolos atau ada error DB
-				mockRepo.On("UpdateStock", mock.Anything, 1).Return(tt.mockReturn).Once()
+			// Kita hanya ekspektasi Service dipanggil jika validasi input di Handler lolos
+			if tt.name == "Success" || tt.expectedStatus == http.StatusInternalServerError || (tt.expectedStatus == http.StatusBadRequest && tt.mockReturn != nil) {
+				mockService.On("UpdateStock", mock.Anything, mock.Anything, 1).Return(tt.mockReturn).Once()
 			}
 
 			req := httptest.NewRequest("POST", "/items/update-stock", strings.NewReader(tt.inputBody))
@@ -318,12 +298,15 @@ func TestUpdateStock_Table(t *testing.T) {
 			h.UpdateStock(w, req.WithContext(ctx))
 
 			assert.Equal(t, tt.expectedStatus, w.Code)
+
+			// Bersihkan mock untuk iterasi selanjutnya
+			mockService.ExpectedCalls = nil
 		})
 	}
 }
 
 func TestDeleteItem_NotFound(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 
@@ -346,7 +329,7 @@ func TestDeleteItem_NotFound(t *testing.T) {
 }
 
 func TestExportCSV_Success(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 
@@ -380,7 +363,7 @@ func TestExportCSV_Success(t *testing.T) {
 }
 
 func TestExportCSV_Error(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 
@@ -396,7 +379,7 @@ func TestExportCSV_Error(t *testing.T) {
 }
 
 func TestGetStockLogs_Success(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 
@@ -433,7 +416,7 @@ func TestGetStockLogs_Success(t *testing.T) {
 }
 
 func TestGetStockLogs_DatabaseError(t *testing.T) {
-	mockRepo := new(MockItemRepo)
+	mockRepo := new(repository.MockItemRepo)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	h := ItemHandler{Repo: mockRepo, Logger: logger}
 

@@ -10,6 +10,16 @@ jobs:
   test-and-lint:
     name: Code Quality & Unit Test
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -26,12 +36,18 @@ jobs:
 
       - name: Generate Swagger & Check Diff
         run: |
-          swag init -g cmd/api/main.go
+          $(go env GOPATH)/bin/swag init -g cmd/api/main.go
           git diff --exit-code docs/ || (echo "Error: Swagger docs not updated! Run 'swag init' locally." && exit 1)
 
       - name: Run Unit Tests
         # Menjalankan test di folder handler sesuai strukturmu
-        run: go test -v -cover ./internal/handler/...
+        run: go test -v -coverprofile=coverage.out ./...
+        env:
+          REDIS_ADDRESS: localhost:6379 # Karena service redis di atas diekspos ke localhost runner
+          QUEUE_NAME: "email_queue"
+          ENABLE_LOW_STOCK_ALERT: "true"
+      - name: Display Coverage
+        run: go tool cover -func=coverage.out
 
   build-docker:
     name: Container Build Check

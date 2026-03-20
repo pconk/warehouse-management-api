@@ -16,9 +16,13 @@ type DBConfig struct {
 }
 
 type AppConfig struct {
-	ApiKey  string
-	ApiPort string
-	Db      *DBConfig
+	ApiKey              string
+	ApiPort             string
+	Db                  *DBConfig
+	RedisAddress        string
+	EnableLowStockAlert bool
+	LowStockAlertEmail  string
+	QueueName           string
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -27,6 +31,10 @@ func LoadConfig() (*AppConfig, error) {
 		return nil, err
 	}
 
+	lowStockAlertEmail := os.Getenv("LOW_STOCK_ALERT_EMAIL")
+	if lowStockAlertEmail == "" {
+		lowStockAlertEmail = "admin@warehouse.com"
+	}
 	return &AppConfig{
 		ApiKey:  os.Getenv("API_KEY"),
 		ApiPort: os.Getenv("APP_PORT"),
@@ -37,6 +45,10 @@ func LoadConfig() (*AppConfig, error) {
 			Port:     os.Getenv("DB_PORT"),
 			Name:     os.Getenv("DB_NAME"),
 		},
+		EnableLowStockAlert: os.Getenv("ENABLE_LOW_STOCK_ALERT") == "true",
+		LowStockAlertEmail:  lowStockAlertEmail,
+		RedisAddress:        os.Getenv("REDIS_ADDRESS"),
+		QueueName:           os.Getenv("QUEUE_NAME"),
 	}, nil
 }
 

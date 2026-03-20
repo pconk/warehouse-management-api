@@ -1,4 +1,4 @@
-package handler
+package repository
 
 import (
 	"warehouse-management-api/internal/entity"

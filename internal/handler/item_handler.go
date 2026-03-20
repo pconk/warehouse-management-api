@@ -9,6 +9,7 @@ import (
 	"warehouse-management-api/internal/helper"
 	"warehouse-management-api/internal/middleware"
 	"warehouse-management-api/internal/repository"
+	"warehouse-management-api/internal/service"
 
 	"encoding/csv"
 	"encoding/json"
@@ -20,15 +21,16 @@ import (
 )
 
 type ItemHandler struct {
-	// Repo     *repository.ItemRepository
 	Repo     repository.ItemRepositoryInterface // Pakai Interface
+	Service  service.ItemServiceInterface
 	Logger   *slog.Logger
 	Validate *validator.Validate
 }
 
-func NewItemHandler(repo repository.ItemRepositoryInterface, logger *slog.Logger) *ItemHandler {
+func NewItemHandler(repo repository.ItemRepositoryInterface, logger *slog.Logger, service service.ItemServiceInterface) *ItemHandler {
 	return &ItemHandler{
 		Repo:     repo,
+		Service:  service,
 		Logger:   logger,
 		Validate: validator.New(),
 	}
@@ -239,8 +241,7 @@ func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 	var updateRequest entity.UpdateStockRequest
 
 	// 2. Decode JSON dari Request Body ke Struct
-	err := json.NewDecoder(r.Body).Decode(&updateRequest)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&updateRequest); err != nil {
 		helper.SendResponse(w, http.StatusBadRequest, "Bad Request", "Invalid JSON format", nil)
 		return
 	}
@@ -255,13 +256,11 @@ func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3.b insert db
-	err = h.Repo.UpdateStock(updateRequest, user.ID)
+	// Panggil Service (Logic ada di dalam sini)
+	err := h.Service.UpdateStock(r.Context(), updateRequest, user.ID)
 	if err != nil {
-		// 1. Log error asli untuk debugging di server
 		h.Logger.Error("Update stock failed", "error", err.Error(), "request_id", middleware.GetRequestID(r.Context()))
 
-		// 2. Cek apakah ini error duplikat (misal SKU sudah terdaftar)
 		if strings.Contains(err.Error(), "insufficient") {
 			helper.SendResponse(w, http.StatusBadRequest, "Fail", err.Error(), nil)
 			return
@@ -272,8 +271,6 @@ func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Internal Server Error", nil)
 		return
 	}
-
-	// 4. Kasih response sukses
 	helper.SendResponse(w, http.StatusOK, "OK", "Stock updated successfully", nil)
 
 }
