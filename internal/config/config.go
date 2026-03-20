@@ -3,6 +3,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -23,6 +24,20 @@ type AppConfig struct {
 	EnableLowStockAlert bool
 	LowStockAlertEmail  string
 	QueueName           string
+	LowStockThreshold   int
+}
+
+func getEnvInt(key string, fallback int) int {
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+	// Cek apakah string bisa diubah ke int
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return fallback
+	}
+	return i
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -49,6 +64,7 @@ func LoadConfig() (*AppConfig, error) {
 		LowStockAlertEmail:  lowStockAlertEmail,
 		RedisAddress:        os.Getenv("REDIS_ADDRESS"),
 		QueueName:           os.Getenv("QUEUE_NAME"),
+		LowStockThreshold:   getEnvInt("LOW_STOCK_THRESHOLD", 5),
 	}, nil
 }
 

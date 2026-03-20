@@ -1,52 +1,136 @@
 package handler
 
 import (
+	"encoding/json"
 	"log/slog"
-	"math"
 	"net/http"
+	"strconv"
+	"warehouse-management-api/internal/entity"
 	"warehouse-management-api/internal/helper"
-	"warehouse-management-api/internal/repository"
+	"warehouse-management-api/internal/service"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type CategoryHandler struct {
-	Repo   repository.CategoryRepositoryInterface // Ganti dari *repository.CategoryRepository
-	Logger *slog.Logger
+	Service service.CategoryServiceInterface
+	Logger  *slog.Logger
 }
 
-func NewCategoryHandler(repo repository.CategoryRepositoryInterface, logger *slog.Logger) *CategoryHandler {
-	return &CategoryHandler{
-		Repo:   repo,
-		Logger: logger,
-	}
+func NewCategoryHandler(service service.CategoryServiceInterface, logger *slog.Logger) *CategoryHandler {
+	return &CategoryHandler{Service: service, Logger: logger}
 }
 
 // GetAll godoc
 // @Summary Ambil semua kategori
-// @Description Mengambil daftar kategori barang untuk keperluan dropdown atau filter
+// @Description Mengambil daftar semua kategori
 // @Tags categories
 // @Produce json
-// @Param page query int false "Halaman" default(1)
-// @Param limit query int false "Data per halaman" default(10)
-// @Success 200 {object} helper.WebResponsePaging{data=[]entity.Category}
+// @Success 200 {object} helper.WebResponse{data=[]entity.Category}
 // @Router /categories [get]
 // @Security ApiKeyAuth
 func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	limit, offset, page := helper.GetPaginationParams(r)
-
-	categories, total, err := h.Repo.FindAll(limit, offset)
+	categories, err := h.Service.GetAll(r.Context())
 	if err != nil {
-		h.Logger.Error("Failed to fetch categories", "error", err.Error())
-		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Internal server error", nil)
+		h.Logger.Error("Failed to fetch categories", "error", err)
+		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Internal Server Error", nil)
 		return
 	}
 
-	totalPages := int(math.Ceil(float64(total) / float64(limit)))
-	meta := &helper.PaginationMeta{
-		CurrentPage: page,
-		TotalItems:  total,
-		TotalPages:  totalPages,
-		Limit:       limit,
+	helper.SendResponse(w, http.StatusOK, "Success", "List of categories", categories)
+}
+
+// GetByID godoc
+// @Summary Ambil detail kategori
+// @Description Mengambil data kategori berdasarkan ID
+// @Tags categories
+// @Produce json
+// @Param id path int true "ID Kategori"
+// @Success 200 {object} helper.WebResponse{data=entity.Category}
+// @Router /categories/{id} [get]
+// @Security ApiKeyAuth
+func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	category, err := h.Service.GetByID(r.Context(), id)
+	if err != nil {
+		helper.SendResponse(w, http.StatusNotFound, "Not Found", "Category not found", nil)
+		return
+	}
+	helper.SendResponse(w, http.StatusOK, "Success", "Category detail", category)
+}
+
+// Create godoc
+// @Summary Buat kategori baru
+// @Description Menambahkan kategori baru (Khusus Admin)
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param category body entity.Category true "Data Kategori"
+// @Success 201 {object} helper.WebResponse{data=entity.Category}
+// @Router /categories [post]
+// @Security ApiKeyAuth
+func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
+	var req entity.Category
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		helper.SendResponse(w, http.StatusBadRequest, "Bad Request", "Invalid JSON", nil)
+		return
 	}
 
-	helper.SendResponseWithPaging(w, http.StatusOK, "OK", "Categories retrieved", categories, meta)
+	if err := h.Service.Create(r.Context(), &req); err != nil {
+		h.Logger.Error("Failed to create category", "error", err)
+		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Failed to create category", nil)
+		return
+	}
+
+	helper.SendResponse(w, http.StatusCreated, "Success", "Category created", req)
+}
+
+// Update godoc
+// @Summary Update kategori
+// @Description Mengubah data kategori (Khusus Admin)
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param id path int true "ID Kategori"
+// @Param category body entity.Category true "Data Kategori"
+// @Success 200 {object} helper.WebResponse
+// @Router /categories/{id} [put]
+// @Security ApiKeyAuth
+func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	var req entity.Category
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		helper.SendResponse(w, http.StatusBadRequest, "Bad Request", "Invalid JSON", nil)
+		return
+	}
+	req.ID = id
+
+	if err := h.Service.Update(r.Context(), &req); err != nil {
+		h.Logger.Error("Failed to update category", "error", err)
+		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Failed to update category", nil)
+		return
+	}
+
+	helper.SendResponse(w, http.StatusOK, "Success", "Category updated", nil)
+}
+
+// Delete godoc
+// @Summary Hapus kategori
+// @Description Menghapus kategori permanen (Khusus Admin)
+// @Tags admin
+// @Produce json
+// @Param id path int true "ID Kategori"
+// @Success 200 {object} helper.WebResponse
+// @Router /categories/{id} [delete]
+// @Security ApiKeyAuth
+func (h *CategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+
+	if err := h.Service.Delete(r.Context(), id); err != nil {
+		h.Logger.Error("Failed to delete category", "error", err)
+		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Failed to delete category", nil)
+		return
+	}
+
+	helper.SendResponse(w, http.StatusOK, "Success", "Category deleted", nil)
 }

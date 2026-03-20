@@ -90,11 +90,12 @@ func main() {
 
 	// Init service
 	itemService := service.NewItemService(itemRepo, emailProducer, logger, cfg)
+	categoryService := service.NewCategoryService(catRepo, logger)
 
 	// Init Handler (Sambil lempar repo-nya)
 	healthHandler := handler.NewHealthHandler(healthRepo, logger)
-	itemHandler := handler.NewItemHandler(itemRepo, logger, itemService)
-	catHandler := handler.NewCategoryHandler(catRepo, logger)
+	itemHandler := handler.NewItemHandler(itemService, logger)
+	catHandler := handler.NewCategoryHandler(categoryService, logger)
 
 	// Inisialisasi Middleware dengan API Key dari .env
 	auth := middleware.AuthMiddleware(userRepo, logger)
@@ -118,6 +119,7 @@ func main() {
 		r.Use(auth) // Semua di dalam group ini otomatis kena Auth
 
 		r.Get("/categories", catHandler.GetAll)
+		r.Get("/categories/{id}", catHandler.GetByID)
 		r.Get("/items", itemHandler.GetAllItem)
 		r.Get("/items/{id}", itemHandler.GetByID)
 		r.Post("/items/create", itemHandler.Create)
@@ -127,6 +129,10 @@ func main() {
 		// Sub-group untuk Admin saja
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RoleMiddleware("admin"))
+			r.Put("/categories/{id}", catHandler.Update)
+			r.Delete("/categories/{id}", catHandler.Delete)
+			r.Post("/categories", catHandler.Create)
+
 			r.Put("/items/{id}", itemHandler.Update)
 			r.Delete("/items/{id}", itemHandler.Delete)
 			r.Post("/items/update-stock", itemHandler.UpdateStock)

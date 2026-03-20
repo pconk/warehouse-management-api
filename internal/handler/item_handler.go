@@ -8,7 +8,6 @@ import (
 	"warehouse-management-api/internal/entity"
 	"warehouse-management-api/internal/helper"
 	"warehouse-management-api/internal/middleware"
-	"warehouse-management-api/internal/repository"
 	"warehouse-management-api/internal/service"
 
 	"encoding/csv"
@@ -21,15 +20,13 @@ import (
 )
 
 type ItemHandler struct {
-	Repo     repository.ItemRepositoryInterface // Pakai Interface
 	Service  service.ItemServiceInterface
 	Logger   *slog.Logger
 	Validate *validator.Validate
 }
 
-func NewItemHandler(repo repository.ItemRepositoryInterface, logger *slog.Logger, service service.ItemServiceInterface) *ItemHandler {
+func NewItemHandler(service service.ItemServiceInterface, logger *slog.Logger) *ItemHandler {
 	return &ItemHandler{
-		Repo:     repo,
 		Service:  service,
 		Logger:   logger,
 		Validate: validator.New(),
@@ -46,17 +43,15 @@ func NewItemHandler(repo repository.ItemRepositoryInterface, logger *slog.Logger
 // @Router /items/{id} [get]
 // @Security ApiKeyAuth
 func (h *ItemHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	idString := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idString)
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id == 0 {
 		helper.SendResponse(w, http.StatusBadRequest, "Fail", "ID harus angka", nil)
 		return
 	}
 
-	item, err := h.Repo.FindByID(id)
+	item, err := h.Service.GetByID(r.Context(), id)
 	if err != nil {
-		// Log error asli (untuk internal dev)
-		h.Logger.Error("GetByID  failed", "error", err.Error())
+		h.Logger.Error("GetByID  failed", "error", err.Error(), "request_id", middleware.GetRequestID(r.Context()))
 
 		// Response ke user (aman, tidak bocor detail DB)
 		helper.SendResponse(w, http.StatusInternalServerError, "Internal Server Error", "Gagal mengambil data dari server", nil)
@@ -91,14 +86,11 @@ func (h *ItemHandler) GetAllItem(w http.ResponseWriter, r *http.Request) {
 	filterName := r.URL.Query().Get("name")
 	filterCatID, _ := strconv.Atoi(r.URL.Query().Get("category_id"))
 
-	reqID := middleware.GetRequestID(r.Context())
-	h.Logger.Info("Processing GetAllItem", "request_id", reqID)
-
-	items, totalItems, err := h.Repo.List(limit, offset, filterName, filterCatID)
+	items, totalItems, err := h.Service.GetAll(r.Context(), limit, offset, filterName, filterCatID)
 
 	if err != nil {
 		// Log error asli (untuk internal dev)
-		h.Logger.Error("Get All Item failed", "error", err.Error(), "request_id", reqID)
+		h.Logger.Error("Get All Item failed", "error", err.Error(), "request_id", middleware.GetRequestID(r.Context()))
 
 		helper.SendResponse(w, http.StatusInternalServerError, "Internal Server Error", "Gagal mengambil data dari server", nil)
 		return
@@ -140,26 +132,20 @@ func (h *ItemHandler) GetAllItem(w http.ResponseWriter, r *http.Request) {
 func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var newItem entity.Item
 
-	// 2. Decode JSON dari Request Body ke Struct
-	err := json.NewDecoder(r.Body).Decode(&newItem)
-	if err != nil {
-		helper.SendResponse(w, http.StatusBadRequest, "Bad Request", "Invalid JSON format", nil)
+	if err := json.NewDecoder(r.Body).Decode(&newItem); err != nil {
+		helper.SendResponse(w, http.StatusBadRequest, "Bad Request", "Invalid JSON", nil)
 		return
 	}
 
-	// 2. Validasi (Gunakan validator)
 	if err := h.Validate.Struct(newItem); err != nil {
 		// Panggil helper untuk merapikan error
 		prettyErrors := helper.FormatValidationError(err)
 
-		// Kirim response dengan status 400 tapi data berisi detail errornya
 		helper.SendResponse(w, http.StatusBadRequest, "Validation Error", "Beberapa field tidak valid", prettyErrors)
 		return
 	}
 
-	// 3.b insert db
-	err = h.Repo.Insert(newItem)
-	if err != nil {
+	if err := h.Service.Create(r.Context(), newItem); err != nil {
 		// 1. Log error asli untuk debugging di server
 		h.Logger.Error("Create Item failed", "error", err.Error(), "request_id", middleware.GetRequestID(r.Context()))
 
@@ -170,7 +156,6 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// 3. Untuk error teknis lainnya (Koneksi mati, dsb), berikan status 500
-		// Jangan kembalikan err.Error() asli ke user karena berbahaya (leak database info)
 		helper.SendResponse(w, http.StatusInternalServerError, "Error", "We are experiencing technical difficulties, please try again later", nil)
 		return
 	}
@@ -192,13 +177,16 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Router /items/{id} [put]
 // @Security ApiKeyAuth
 func (h *ItemHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
-	reqID := middleware.GetRequestID(r.Context())
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id == 0 {
+		helper.SendResponse(w, http.StatusBadRequest, "Fail", "ID harus angka", nil)
+		return
+	}
 
 	var updateReq entity.UpdateItemRequest
-	if err := json.NewDecoder(r.Body).Decode(&updateReq); id < 1 || err != nil {
-		h.Logger.Error("error", "id", id, "updateReq", updateReq)
-		helper.SendResponse(w, http.StatusBadRequest, "Fail", "Invalid ID atau Format JSON tidak valid", nil)
+	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
+		// h.Logger.Error("error", "id", id, "updateReq", updateReq)
+		helper.SendResponse(w, http.StatusBadRequest, "Fail", "Format JSON tidak valid", nil)
 		return
 	}
 
@@ -208,9 +196,8 @@ func (h *ItemHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.Repo.Update(id, updateReq)
-	if err != nil {
-		h.Logger.Error("Update failed", "error", err.Error(), "request_id", reqID)
+	if err := h.Service.Update(r.Context(), id, updateReq); err != nil {
+		h.Logger.Error("Update failed", "error", err.Error(), "request_id", middleware.GetRequestID(r.Context()))
 
 		if err.Error() == "item not found or no changes made" {
 			helper.SendResponse(w, http.StatusNotFound, "Fail", "Barang tidak ditemukan atau tidak ada perubahan", nil)
@@ -266,8 +253,6 @@ func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// 3. Untuk error teknis lainnya (Koneksi mati, dsb), berikan status 500
-		// Jangan kembalikan err.Error() asli ke user karena berbahaya (leak database info)
 		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Internal Server Error", nil)
 		return
 	}
@@ -290,13 +275,13 @@ func (h *ItemHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Repo.Delete(id)
-	if err != nil {
+	if err := h.Service.Delete(r.Context(), id); err != nil {
 		if err.Error() == "item not found" {
 			helper.SendResponse(w, http.StatusNotFound, "Fail", "Barang tidak ditemukan", nil)
 			return
 		}
-		h.Logger.Error("Delete failed", "error", err.Error())
+		h.Logger.Error("Delete failed", "error", err.Error(),
+			"request_id", middleware.GetRequestID(r.Context()))
 		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Gagal menghapus data", nil)
 		return
 	}
@@ -314,8 +299,10 @@ func (h *ItemHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // @Router /items/export [get]
 // @Security ApiKeyAuth
 func (h *ItemHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
-	items, err := h.Repo.FindAllForExport() // Buat fungsi repo tanpa LIMIT/OFFSET
+	items, err := h.Service.GetAllForExport(r.Context())
 	if err != nil {
+		h.Logger.Error("Delete failed", "error", err.Error(),
+			"request_id", middleware.GetRequestID(r.Context()))
 		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Gagal export data", nil)
 		return
 	}
@@ -368,9 +355,10 @@ func (h *ItemHandler) GetStockLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logs, total, err := h.Repo.GetStockLogs(limit, offset, itemID, logType)
+	logs, total, err := h.Service.GetStockLogs(r.Context(), limit, offset, itemID, logType)
 	if err != nil {
-		h.Logger.Error("GetStockLogs  failed", "error", err.Error())
+		h.Logger.Error("GetStockLogs  failed", "error", err.Error(),
+			"request_id", middleware.GetRequestID(r.Context()))
 		helper.SendResponse(w, http.StatusInternalServerError, "Error", "Gagal mengambil riwayat stok", nil)
 		return
 	}

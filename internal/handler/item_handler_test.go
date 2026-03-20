@@ -12,7 +12,6 @@ import (
 	"testing"
 	"warehouse-management-api/internal/entity"
 	"warehouse-management-api/internal/middleware"
-	"warehouse-management-api/internal/repository"
 	"warehouse-management-api/internal/service"
 
 	"github.com/go-chi/chi/v5"
@@ -21,15 +20,22 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// --- TESTS ---
+
 func TestGetByID_Success(t *testing.T) {
 	// 1. Setup Mock & Handler
-	mockRepo := new(repository.MockItemRepo)
+	// Refactor: Gunakan MockService, bukan MockRepo
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+
+	// Kita tidak butuh Repo lagi di struct Handler
+	h := ItemHandler{Service: mockService, Logger: logger}
 
 	// 2. Ekspektasi: Jika ID 1 dipanggil, kembalikan data item
 	itemData := &entity.Item{ID: 1, Name: "Test Item", SKU: "Tst-01"}
-	mockRepo.On("FindByID", 1).Return(itemData, nil)
+
+	// Perhatikan: Argument pertama mock service sekarang ada `mock.Anything` untuk context
+	mockService.On("GetByID", mock.Anything, 1).Return(itemData, nil)
 
 	// 3. Buat Request ke endpoint /items/1
 	req := httptest.NewRequest("GET", "/items/1", nil)
@@ -54,11 +60,11 @@ func TestGetByID_Success(t *testing.T) {
 
 func TestGetByID_NotFound(t *testing.T) {
 	// 1. Setup Mock & Handler
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+	h := ItemHandler{Service: mockService, Logger: logger}
 
-	mockRepo.On("FindByID", 1).Return(nil, nil)
+	mockService.On("GetByID", mock.Anything, 1).Return(nil, nil)
 
 	// 3. Buat Request ke endpoint /items/1
 	req := httptest.NewRequest("GET", "/items/1", nil)
@@ -78,9 +84,9 @@ func TestGetByID_NotFound(t *testing.T) {
 }
 
 func TestGetAllItem_Success(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+	h := ItemHandler{Service: mockService, Logger: logger}
 
 	items := []entity.Item{
 		{ID: 1, SKU: "SKU01", Name: "Item 1", Price: 1000, Stock: 10, CategoryName: "Elektronik"},
@@ -88,7 +94,8 @@ func TestGetAllItem_Success(t *testing.T) {
 	}
 
 	// Simulasi DB mati/koneksi putus
-	mockRepo.On("List", 10, 0, "", 0).
+	// Params: ctx, limit, offset, name, catID
+	mockService.On("GetAll", mock.Anything, 10, 0, "", 0).
 		Return(items, int64(2), nil)
 
 	req := httptest.NewRequest("GET", "/items?page=1&limit=10", nil)
@@ -108,16 +115,17 @@ func TestGetAllItem_Success(t *testing.T) {
 	data := response["data"].([]interface{})
 	assert.True(t, len(data) > 0)
 
-	mockRepo.AssertExpectations(t)
+	mockService.AssertExpectations(t)
 }
 
 func TestGetAllItem_DatabaseError(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+	h := ItemHandler{Service: mockService, Logger: logger}
 
 	// Simulasi DB mati/koneksi putus
-	mockRepo.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	// Service.GetAll mengembalikan ([]Item, int64, error)
+	mockService.On("GetAll", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return([]entity.Item{}, int64(0), errors.New("connection refused"))
 
 	req := httptest.NewRequest("GET", "/items", nil)
@@ -133,10 +141,10 @@ func TestGetAllItem_DatabaseError(t *testing.T) {
 }
 
 func TestCreateItem_Success(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
+	h := ItemHandler{Service: mockService, Logger: logger, Validate: validate}
 
 	newItem := entity.Item{
 		CategoryID: 1,
@@ -146,7 +154,7 @@ func TestCreateItem_Success(t *testing.T) {
 		Stock:      10,
 	}
 
-	mockRepo.On("Insert", mock.AnythingOfType("entity.Item")).Return(nil)
+	mockService.On("Create", mock.Anything, mock.AnythingOfType("entity.Item")).Return(nil)
 
 	body, _ := json.Marshal(newItem)
 	req := httptest.NewRequest("POST", "/items/create", strings.NewReader(string(body)))
@@ -158,12 +166,12 @@ func TestCreateItem_Success(t *testing.T) {
 }
 
 func TestCreateItem_DuplicateSKU(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
+	h := ItemHandler{Service: mockService, Logger: logger, Validate: validate}
 
-	mockRepo.On("Insert", mock.Anything).Return(errors.New("Duplicate entry 'MAC-001'"))
+	mockService.On("Create", mock.Anything, mock.Anything).Return(errors.New("Duplicate entry 'MAC-001'"))
 
 	body := `{"category_id": 1, "sku": "MAC-001", "name": "Mac", "price": 1000, "stock": 1}`
 	req := httptest.NewRequest("POST", "/items/create", strings.NewReader(body))
@@ -175,10 +183,10 @@ func TestCreateItem_DuplicateSKU(t *testing.T) {
 }
 
 func TestUpdateItem_ValidationError(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
+	h := ItemHandler{Service: mockService, Logger: logger, Validate: validate}
 
 	// Body JSON dengan harga minus (Price: -100)
 	body := `{"category_id": 1, "name": "Salah Harga", "price": -100}`
@@ -202,14 +210,14 @@ func TestUpdateItem_ValidationError(t *testing.T) {
 	assert.Equal(t, "Validation Error", response["status"])
 
 	// Pastikan Repo.Update TIDAK PERNAH dipanggil karena sudah gagal di validasi
-	mockRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+	mockService.AssertNotCalled(t, "Update", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestUpdateItem_Success(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger, Validate: validate}
+	h := ItemHandler{Service: mockService, Logger: logger, Validate: validate}
 
 	// Data input yang valid
 	updateData := entity.UpdateItemRequest{
@@ -219,7 +227,7 @@ func TestUpdateItem_Success(t *testing.T) {
 	}
 
 	// Ekspektasi: Repo.Update dipanggil dengan ID 1 dan data di atas, kembalikan nil (no error)
-	mockRepo.On("Update", 1, updateData).Return(nil)
+	mockService.On("Update", mock.Anything, 1, updateData).Return(nil)
 
 	body, _ := json.Marshal(updateData)
 	req := httptest.NewRequest("PUT", "/items/1", strings.NewReader(string(body)))
@@ -233,12 +241,12 @@ func TestUpdateItem_Success(t *testing.T) {
 	h.Update(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	mockRepo.AssertExpectations(t) // Pastikan repo benar-benar dipanggil
+	mockService.AssertExpectations(t) // Pastikan repo benar-benar dipanggil
 }
 
 func TestUpdateStock_Table(t *testing.T) {
 	// Setup dasar
-	mockService := new(service.MockItemService) // Sekarang nge-mock Service, bukan Repo
+	mockService := new(service.MockItemService) // Pakai struct lokal MockItemService
 	validate := validator.New()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
@@ -306,12 +314,12 @@ func TestUpdateStock_Table(t *testing.T) {
 }
 
 func TestDeleteItem_NotFound(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+	h := ItemHandler{Service: mockService, Logger: logger}
 
 	// Ekspektasi: Repo.Delete balikin error "item not found"
-	mockRepo.On("Delete", 99).Return(errors.New("item not found"))
+	mockService.On("Delete", mock.Anything, 99).Return(errors.New("item not found"))
 
 	req := httptest.NewRequest("DELETE", "/items/99", nil)
 	rctx := chi.NewRouteContext()
@@ -329,9 +337,9 @@ func TestDeleteItem_NotFound(t *testing.T) {
 }
 
 func TestExportCSV_Success(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+	h := ItemHandler{Service: mockService, Logger: logger}
 
 	// 1. Data dummy untuk di-export
 	items := []entity.Item{
@@ -340,7 +348,7 @@ func TestExportCSV_Success(t *testing.T) {
 	}
 
 	// 2. Setup Mock: FindAllForExport dipanggil satu kali
-	mockRepo.On("FindAllForExport").Return(items, nil)
+	mockService.On("GetAllForExport", mock.Anything).Return(items, nil)
 
 	req := httptest.NewRequest("GET", "/items/export", nil)
 	w := httptest.NewRecorder()
@@ -359,16 +367,16 @@ func TestExportCSV_Success(t *testing.T) {
 	assert.Contains(t, body, "1,SKU01,Item 1,1000.00,10,Elektronik")
 	assert.Contains(t, body, "2,SKU02,Item 2,2000.00,5,Alat Kantor")
 
-	mockRepo.AssertExpectations(t)
+	mockService.AssertExpectations(t)
 }
 
 func TestExportCSV_Error(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+	h := ItemHandler{Service: mockService, Logger: logger}
 
 	// Simulasi DB Error saat export
-	mockRepo.On("FindAllForExport").Return([]entity.Item{}, errors.New("db connection lost"))
+	mockService.On("GetAllForExport", mock.Anything).Return([]entity.Item{}, errors.New("db connection lost"))
 
 	req := httptest.NewRequest("GET", "/items/export", nil)
 	w := httptest.NewRecorder()
@@ -379,9 +387,9 @@ func TestExportCSV_Error(t *testing.T) {
 }
 
 func TestGetStockLogs_Success(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+	h := ItemHandler{Service: mockService, Logger: logger}
 
 	// 1. Data dummy logs
 	adminName := "admin"
@@ -391,7 +399,7 @@ func TestGetStockLogs_Success(t *testing.T) {
 	total := int64(1)
 
 	// 2. Setup Mock: Pastikan parameter sesuai dengan handler (limit 10, offset 0, itemID 0, type empty)
-	mockRepo.On("GetStockLogs", 10, 0, 0, "").Return(logs, total, nil)
+	mockService.On("GetStockLogs", mock.Anything, 10, 0, 0, "").Return(logs, total, nil)
 
 	req := httptest.NewRequest("GET", "/items/stock-logs?page=1&limit=10", nil)
 	w := httptest.NewRecorder()
@@ -412,16 +420,16 @@ func TestGetStockLogs_Success(t *testing.T) {
 	data := response["data"].([]interface{})
 	assert.True(t, len(data) > 0)
 
-	mockRepo.AssertExpectations(t)
+	mockService.AssertExpectations(t)
 }
 
 func TestGetStockLogs_DatabaseError(t *testing.T) {
-	mockRepo := new(repository.MockItemRepo)
+	mockService := new(service.MockItemService)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	h := ItemHandler{Repo: mockRepo, Logger: logger}
+	h := ItemHandler{Service: mockService, Logger: logger}
 
 	// Simulasi DB Error
-	mockRepo.On("GetStockLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+	mockService.On("GetStockLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return([]entity.StockLog{}, int64(0), errors.New("db error"))
 
 	req := httptest.NewRequest("GET", "/items/stock-logs", nil)

@@ -10,6 +10,8 @@ definitions:
         type: integer
       name:
         type: string
+      updated_at:
+        type: string
     type: object
   entity.Item:
     properties:
@@ -152,19 +154,7 @@ info:
 paths:
   /categories:
     get:
-      description: Mengambil daftar kategori barang untuk keperluan dropdown atau
-        filter
-      parameters:
-      - default: 1
-        description: Halaman
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Data per halaman
-        in: query
-        name: limit
-        type: integer
+      description: Mengambil daftar semua kategori
       produces:
       - application/json
       responses:
@@ -172,7 +162,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/helper.WebResponsePaging'
+            - $ref: '#/definitions/helper.WebResponse'
             - properties:
                 data:
                   items:
@@ -184,6 +174,108 @@ paths:
       summary: Ambil semua kategori
       tags:
       - categories
+    post:
+      consumes:
+      - application/json
+      description: Menambahkan kategori baru (Khusus Admin)
+      parameters:
+      - description: Data Kategori
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Category'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entity.Category'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Buat kategori baru
+      tags:
+      - admin
+  /categories/{id}:
+    delete:
+      description: Menghapus kategori permanen (Khusus Admin)
+      parameters:
+      - description: ID Kategori
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Hapus kategori
+      tags:
+      - admin
+    get:
+      description: Mengambil data kategori berdasarkan ID
+      parameters:
+      - description: ID Kategori
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.WebResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/entity.Category'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Ambil detail kategori
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: Mengubah data kategori (Khusus Admin)
+      parameters:
+      - description: ID Kategori
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data Kategori
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helper.WebResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update kategori
+      tags:
+      - admin
   /health:
     get:
       description: Mengecek status aplikasi dan koneksi database

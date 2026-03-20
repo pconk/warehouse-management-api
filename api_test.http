@@ -9,8 +9,45 @@
 ### ==========================================
 
 # Ambil semua kategori (Electronics, Furniture, Stationery)
-GET {{baseUrl}}/categories?page=1&limit=100
+GET {{baseUrl}}/categories
 X-API-KEY: {{staffKey}}
+
+###
+
+# Ambil kategori per ID
+GET {{baseUrl}}/categories/5
+X-API-KEY: {{staffKey}}
+
+###
+
+# Tambah kategori baru
+POST {{baseUrl}}/categories
+Content-Type: {{contentType}}
+X-API-KEY: {{adminKey}}
+
+{
+    "name": "Printer",
+    "Description": "Printer"    
+}
+
+###
+
+# Update kategori
+PUT {{baseUrl}}/categories/5
+Content-Type: {{contentType}}
+X-API-KEY: {{adminKey}}
+
+{
+    "name": "Printer2",
+    "Description": "Printer"  
+}
+
+###
+
+# Delete kategori
+DELETE  {{baseUrl}}/categories/5
+Content-Type: {{contentType}}
+X-API-KEY: {{adminKey}}
 
 ###
 
@@ -20,14 +57,14 @@ X-API-KEY: {{staffKey}}
 
 # Ambil semua daftar barang beserta stoknya
 # GET {{baseUrl}}/items?page=1&limit=10&name=lo&category=1
-GET {{baseUrl}}/items?page=1&limit=10
+GET {{baseUrl}}/items?page=1&limit=10&category_id=1
 X-API-KEY: {{staffKey}}
 
 ###
 
 # Cari barang spesifik (Misal: MacBook Pro M2)
 # Sesuaikan ID 1 sesuai hasil insert di DB
-GET {{baseUrl}}/items/1
+GET {{baseUrl}}/items/11
 X-API-KEY: {{staffKey}}
 
 ###
@@ -54,7 +91,7 @@ X-API-KEY: {{staffKey}}
 ###
 
 # Update barang
-PUT {{baseUrl}}/items/5
+PUT {{baseUrl}}/items/11
 Content-Type: {{contentType}}
 X-API-KEY: {{adminKey}}
 
@@ -87,10 +124,10 @@ Content-Type: {{contentType}}
 X-API-KEY: {{adminKey}}
 
 {
-    "item_id": 1,
+    "item_id": 11,
     "type": "OUT",
     "quantity": 1,
-    "reason": "Sold to customer - Order #INV002"
+    "reason": "Sold to customer - Order #INV003"
 }
 
 ###

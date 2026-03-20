@@ -2,42 +2,121 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
 	"warehouse-management-api/internal/entity"
 )
+
+// CategoryRepositoryInterface mendefinisikan kontrak method yang harus ada
+// Ini digunakan oleh Service agar tidak bergantung langsung pada struct
+type CategoryRepositoryInterface interface {
+	FindAll() ([]entity.Category, error)
+	FindByID(id int) (*entity.Category, error)
+	Create(category *entity.Category) error
+	Update(category *entity.Category) error
+	Delete(id int) error
+}
 
 type CategoryRepository struct {
 	db *sql.DB
 }
 
-type CategoryRepositoryInterface interface {
-	FindAll(limit, offset int) ([]entity.Category, int64, error)
-}
-
-func NewCategoryRepository(db *sql.DB) CategoryRepositoryInterface {
+func NewCategoryRepository(db *sql.DB) *CategoryRepository {
 	return &CategoryRepository{db: db}
 }
 
-func (r *CategoryRepository) FindAll(limit, offset int) ([]entity.Category, int64, error) {
-	// 1. Query Data
-	query := "SELECT id, name, description, created_at FROM categories ORDER BY name ASC LIMIT ? OFFSET ?"
-	rows, err := r.db.Query(query, limit, offset)
+func (r *CategoryRepository) FindAll() ([]entity.Category, error) {
+	query := "SELECT id, name, description, created_at, updated_at FROM categories"
+	rows, err := r.db.Query(query)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	defer rows.Close()
 
-	categories := []entity.Category{}
+	var categories []entity.Category
 	for rows.Next() {
-		var c entity.Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &c.CreatedAt); err != nil {
-			return nil, 0, err
+		var cat entity.Category
+		// Scan ke struct entity
+		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Description, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
+			return nil, err
 		}
-		categories = append(categories, c)
+		categories = append(categories, cat)
+	}
+	return categories, nil
+}
+
+func (r *CategoryRepository) FindByID(id int) (*entity.Category, error) {
+	query := "SELECT id, name, description, created_at, updated_at FROM categories WHERE id = ?"
+	row := r.db.QueryRow(query, id)
+
+	var cat entity.Category
+	if err := row.Scan(&cat.ID, &cat.Name, &cat.Description, &cat.CreatedAt, &cat.UpdatedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("category not found")
+		}
+		return nil, err
+	}
+	return &cat, nil
+}
+
+func (r *CategoryRepository) Create(category *entity.Category) error {
+	query := "INSERT INTO categories (name, description, created_at, updated_at) VALUES (?, ?, ?, ?)"
+	now := time.Now()
+	// Eksekusi query insert
+	res, err := r.db.Exec(query, category.Name, category.Description, now, now)
+	if err != nil {
+		return err
 	}
 
-	// 2. Query Total
-	var total int64
-	r.db.QueryRow("SELECT COUNT(id) FROM categories").Scan(&total)
+	// Ambil ID yang baru saja digenerate
+	id, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
 
-	return categories, total, nil
+	// Update struct dengan data baru
+	category.ID = int(id)
+	category.CreatedAt = now
+	category.UpdatedAt = now
+
+	return nil
+}
+
+func (r *CategoryRepository) Update(category *entity.Category) error {
+	query := "UPDATE categories SET name = ?, description = ?, updated_at = ? WHERE id = ?"
+
+	now := time.Now()
+	res, err := r.db.Exec(query, category.Name, category.Description, now, category.ID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("category not found or no changes made")
+	}
+
+	return nil
+}
+
+func (r *CategoryRepository) Delete(id int) error {
+	query := "DELETE FROM categories WHERE id = ?"
+	res, err := r.db.Exec(query, id)
+	if err != nil {
+		// Tips: Jika gagal karena Foreign Key (ada barang yg pakai kategori ini), error akan muncul di sini
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("category not found")
+	}
+
+	return nil
 }

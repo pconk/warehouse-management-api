@@ -4,6 +4,7 @@
 ------------------------------
 ### Warehouse Management API 📦
 API sederhana namun production-ready untuk mengelola stok gudang, kategori barang, dan riwayat mutasi stok. Dibangun menggunakan Go (Golang) dengan fokus pada performa, keamanan, dan integritas data.
+
 🚀 Fitur Utama
 
 * CRUD Items & Categories: Manajemen data master barang dan kategori.
@@ -28,10 +29,10 @@ Fitur ini khusus diimplementasikan pada **Update Stock**. Jika stok turun di baw
 
 🛠️ ***Tech Stack***
 
-* Language: Go (Golang)
+* Language: ***Go (Golang)***
 * Router: go-chi/chi (Lightweight & Standard Library compatible)
-* Database: MySQL / MariaDB
-* Queue/Broker: Redis
+* Database: ***MySQL***
+* Queue/Broker: ***Redis***
 * Validation: [go-playground/validator](https://github.com/go-playground/validator)
 * Logging: slog (Structured Logging)
 * Toolkit: Testify/Mock (Unit Testing)
@@ -43,19 +44,32 @@ Fitur ini khusus diimplementasikan pada **Update Stock**. Jika stok turun di baw
 Project menggunakan pendekatan **Clean Architecture sederhana**.
 
 ```
-Client ──> HTTP Router (chi) ──> Middleware (Auth, RBAC, Logger)
-                              │
-                    ┌─────────┴─────────┐
-                    ▼                   ▼
-                  Handler        Service Layer (New)
-               (Simple CRUD)    (Complex Business Logic)
-                    │                   │
-                    │           ┌───────┴───────┐
-                    ▼           ▼               ▼
-                  Repository Layer        Redis Queue ──> Worker Container
-                        │                                  (Async Email)
-                        ▼
-                    Database (MySQL)
+      [ External World ]
+              │
+              ▼
+    ┌──────────────────────┐
+    │   HTTP Router (chi)  │ ───▶ Middleware (Auth, RBAC, Logger)
+    └──────────┬───────────┘
+               │
+       [ Transport Layer ]
+               ▼
+    ┌──────────────────────┐
+    │       Handlers       │ ───▶ (Request Validation & Response Mapping)
+    └──────────┬───────────┘
+               │
+      [ Business Logic Layer ]
+               ▼
+    ┌──────────────────────┐      ┌────────────────────────┐
+    │    Service Layer     │ ───▶ │ Async Worker (Redis)   │
+    │ (Core Business Rules)│      │  (Email/Notifications) │
+    └──────────┬───────────┘      └────────────────────────┘
+               │
+       [ Data Access Layer ]
+               ▼
+    ┌──────────────────────┐      ┌────────────────────────┐
+    │   Repository Layer   │ ───┬▶│    Database (MySQL)    │
+    │  (SQL/Data Mapping)  │    └▶│    Cache/Queue (Redis) │
+    └──────────────────────┘      └────────────────────────┘
 ```
 ---
 
@@ -167,7 +181,7 @@ Audit trail memastikan setiap perubahan stok tercatat.
    go run cmd/api/main.go
    ```
 
-🐳 **QMenggunakan Docker (Rekomendasi)**
+🐳 **Menggunakan Docker (Rekomendasi)**
 Cukup satu perintah untuk menjalankan API, Database, dan Redis:
 ```bash
 docker-compose up --build

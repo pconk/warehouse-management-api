@@ -13,6 +13,13 @@ import (
 
 type ItemServiceInterface interface {
 	UpdateStock(ctx context.Context, req entity.UpdateStockRequest, userID int) error
+	GetAll(ctx context.Context, limit, offset int, filterName string, filterCatID int) ([]entity.Item, int64, error)
+	GetAllForExport(ctx context.Context) ([]entity.Item, error)
+	GetByID(ctx context.Context, id int) (*entity.Item, error)
+	Create(ctx context.Context, item entity.Item) error
+	Update(ctx context.Context, id int, item entity.UpdateItemRequest) error
+	Delete(ctx context.Context, id int) error
+	GetStockLogs(ctx context.Context, limit, offset int, itemID int, logType string) ([]entity.StockLog, int64, error)
 }
 
 type itemService struct {
@@ -50,7 +57,14 @@ func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockReq
 		if err != nil || newItem == nil {
 			return nil // Data update masuk tapi gagal ambil info terbaru, abaikan alert
 		}
-		if oldItem.Stock >= 5 && newItem.Stock < 5 {
+
+		// Mengambil limit dari config, default ke 5 jika config 0/tidak ada
+		limit := s.cfg.LowStockThreshold
+		if limit == 0 {
+			limit = 5
+		}
+
+		if oldItem.Stock >= limit && newItem.Stock < limit {
 			s.logger.Info("Stock low, sending email job", "item_id", newItem.ID, "stock", newItem.Stock)
 
 			// Push ke Redis secara async (Goroutine) agar tidak menghambat response API
@@ -70,4 +84,42 @@ func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockReq
 	}
 
 	return nil
+}
+
+func (s *itemService) GetAll(ctx context.Context, limit, offset int, filterName string, filterCatID int) ([]entity.Item, int64, error) {
+	total, err := s.repo.CountAll(filterName, filterCatID)
+	if err != nil || total == 0 {
+		return nil, 0, err
+	}
+
+	items, err := s.repo.FindAll(limit, offset, filterName, filterCatID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return items, total, nil
+}
+func (s *itemService) GetAllForExport(ctx context.Context) ([]entity.Item, error) {
+	return s.repo.FindAll(10000, 0, "", 0)
+}
+
+func (s *itemService) GetByID(ctx context.Context, id int) (*entity.Item, error) {
+	return s.repo.FindByID(id)
+}
+
+func (s *itemService) Create(ctx context.Context, item entity.Item) error {
+	// Bisa tambah validasi bisnis di sini
+	return s.repo.Create(item)
+}
+
+func (s *itemService) Update(ctx context.Context, id int, item entity.UpdateItemRequest) error {
+	return s.repo.Update(id, item)
+}
+
+func (s *itemService) Delete(ctx context.Context, id int) error {
+	return s.repo.Delete(id)
+}
+
+func (s *itemService) GetStockLogs(ctx context.Context, limit, offset int, itemID int, logType string) ([]entity.StockLog, int64, error) {
+	return s.repo.GetStockLogs(limit, offset, itemID, logType)
 }

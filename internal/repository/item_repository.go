@@ -12,9 +12,11 @@ type ItemRepository struct {
 
 type ItemRepositoryInterface interface {
 	FindByID(id int) (*entity.Item, error)
-	List(limit, offset int, name string, categoryID int) ([]entity.Item, int64, error)
-	FindAllForExport() ([]entity.Item, error)
-	Insert(item entity.Item) error
+	// List(limit, offset int, name string, categoryID int) ([]entity.Item, int64, error)
+	CountAll(name string, categoryID int) (int64, error)
+	FindAll(limit, offset int, name string, categoryID int) ([]entity.Item, error)
+	// FindAllForExport() ([]entity.Item, error)
+	Create(item entity.Item) error
 	Update(id int, item entity.UpdateItemRequest) error
 	UpdateStock(req entity.UpdateStockRequest, userID int) error
 	Delete(id int) error
@@ -72,7 +74,7 @@ func (r *ItemRepository) FindAll(limit, offset int, name string, categoryID int)
 	SELECT i.id, i.category_id, i.sku, i.name, i.price, i.stock, i.created_at, i.updated_at, c.name as category_name
 	FROM items i
 	INNER JOIN categories c ON i.category_id = c.id 
-	WHERE deleted_at IS NULL`
+	WHERE i.deleted_at IS NULL`
 
 	var args []interface{}
 
@@ -89,7 +91,7 @@ func (r *ItemRepository) FindAll(limit, offset int, name string, categoryID int)
 	}
 
 	// Tambahkan Order, Limit, dan Offset
-	query += " ORDER BY i.id DESC LIMIT ? OFFSET ?"
+	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	rows, err := r.db.Query(query, args...)
@@ -112,50 +114,52 @@ func (r *ItemRepository) FindAll(limit, offset int, name string, categoryID int)
 	return items, nil
 }
 
-func (r *ItemRepository) FindAllForExport() ([]entity.Item, error) {
-	query := `
-	SELECT i.id, i.category_id, i.sku, i.name, i.price, i.stock, i.created_at, i.updated_at, c.name as category_name
-	FROM items i
-	INNER JOIN categories c ON i.category_id = c.id
-	WHERE i.deleted_at IS NULL`
+/*
+	func (r *ItemRepository) FindAllForExport() ([]entity.Item, error) {
+		query := `
+		SELECT i.id, i.category_id, i.sku, i.name, i.price, i.stock, i.created_at, i.updated_at, c.name as category_name
+		FROM items i
+		INNER JOIN categories c ON i.category_id = c.id
+		WHERE i.deleted_at IS NULL`
 
-	rows, err := r.db.Query(query)
+		rows, err := r.db.Query(query)
 
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var items []entity.Item
-	for rows.Next() {
-		var item entity.Item
-		err := rows.Scan(&item.ID, &item.CategoryID, &item.SKU, &item.Name, &item.Price, &item.Stock, &item.CreatedAt, &item.UpdatedAt, &item.CategoryName)
 		if err != nil {
 			return nil, err
 		}
-		items = append(items, item)
+		defer rows.Close()
+
+		var items []entity.Item
+		for rows.Next() {
+			var item entity.Item
+			err := rows.Scan(&item.ID, &item.CategoryID, &item.SKU, &item.Name, &item.Price, &item.Stock, &item.CreatedAt, &item.UpdatedAt, &item.CategoryName)
+			if err != nil {
+				return nil, err
+			}
+			items = append(items, item)
+		}
+		return items, nil
 	}
-	return items, nil
-}
 
 // Ambil semua daftar barang beserta stoknya
-func (r *ItemRepository) List(limit, offset int, name string, categoryID int) ([]entity.Item, int64, error) {
-	// Query 1: Ambil Data
-	items, err := r.FindAll(limit, offset, name, categoryID)
-	if err != nil {
-		return nil, 0, err
+
+	func (r *ItemRepository) List(limit, offset int, name string, categoryID int) ([]entity.Item, int64, error) {
+		// Query 1: Ambil Data
+		items, err := r.FindAll(limit, offset, name, categoryID)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Query 2: Ambil Total
+		total, err := r.CountAll(name, categoryID)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return items, total, nil
 	}
-
-	// Query 2: Ambil Total
-	total, err := r.CountAll(name, categoryID)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return items, total, nil
-}
-
-func (r *ItemRepository) Insert(item entity.Item) error {
+*/
+func (r *ItemRepository) Create(item entity.Item) error {
 	query := "INSERT INTO items (category_id, sku, name, price, stock) VALUES  (?, ?, ?, ?, ?)"
 
 	_, err := r.db.Exec(query, item.CategoryID, item.SKU, item.Name, item.Price, item.Stock)
