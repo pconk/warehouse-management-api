@@ -2,7 +2,7 @@ name: Go CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ "**" ]
   pull_request:
     branches: [ main, master ]
 
@@ -46,6 +46,13 @@ jobs:
           REDIS_ADDRESS: localhost:6379 # Karena service redis di atas diekspos ke localhost runner
           QUEUE_NAME: "email_queue"
           ENABLE_LOW_STOCK_ALERT: "true"
+      - name: Update Coverage Badge
+        uses: ncruces/go-coverage-report@v0
+        with:
+          report: 'true'
+          chart: 'true'
+          amend: 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       - name: Display Coverage
         run: go tool cover -func=coverage.out
 

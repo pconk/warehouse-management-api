@@ -1,4 +1,5 @@
 [![Go CI](https://github.com/pconk/warehouse-management-api/actions/workflows/ci.yml/badge.svg)](https://github.com/pconk/warehouse-management-api/actions/workflows/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-74%25-brightgreen)
 
 ------------------------------
 ### Warehouse Management API 📦
@@ -13,6 +14,15 @@ API sederhana namun production-ready untuk mengelola stok gudang, kategori baran
 * Soft Delete: Menghapus data tanpa benar-benar menghilangkannya dari database (menjaga integritas riwayat).
 * Pagination & Filtering: Navigasi data yang efisien dengan parameter page, limit, dan pencarian dinamis.
 * Graceful Shutdown: Memastikan server berhenti dengan aman tanpa memutus transaksi yang sedang berjalan.
+* **Asynchronous Low Stock Alert**: Mengirim notifikasi otomatis via Email (simulasi) saat stok barang turun di bawah ambang batas (threshold) menggunakan background worker.
+* **Message Broker Integration**: Menggunakan ***Redis*** untuk antrean tugas (task queue) agar performa API tetap responsif meskipun sistem sedang mengirim ribuan email.
+
+🚀 Advanced Features
+
+📨 ***Asynchronous Email Alert (Redis)***
+Fitur ini khusus diimplementasikan pada **Update Stock**. Jika stok turun di bawah ambang batas (threshold), sistem akan mengirimkan job ke Redis.
+* **Worker Isolation**: Proses pengiriman email dilakukan oleh container terpisah (Worker) sehingga tidak membebani performa API utama.
+* **Configurable**: Fitur ini dapat diaktifkan atau dimatikan melalui environment variable tanpa mengubah kode.
 
 ---
 
@@ -21,8 +31,10 @@ API sederhana namun production-ready untuk mengelola stok gudang, kategori baran
 * Language: Go (Golang)
 * Router: go-chi/chi (Lightweight & Standard Library compatible)
 * Database: MySQL / MariaDB
+* Queue/Broker: Redis
 * Validation: [go-playground/validator](https://github.com/go-playground/validator)
 * Logging: slog (Structured Logging)
+* Toolkit: Testify/Mock (Unit Testing)
 
 ---
 
@@ -31,22 +43,19 @@ API sederhana namun production-ready untuk mengelola stok gudang, kategori baran
 Project menggunakan pendekatan **Clean Architecture sederhana**.
 
 ```
-Client
-   │
-   ▼
-HTTP Router (chi)
-   │
-Middleware Layer
-(Auth, RBAC, Logger)
-   │
-   ▼
-Handler (Controller)
-   │
-   ▼
-Repository Layer
-   │
-   ▼
-Database (MySQL)
+Client ──> HTTP Router (chi) ──> Middleware (Auth, RBAC, Logger)
+                              │
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+                  Handler        Service Layer (New)
+               (Simple CRUD)    (Complex Business Logic)
+                    │                   │
+                    │           ┌───────┴───────┐
+                    ▼           ▼               ▼
+                  Repository Layer        Redis Queue ──> Worker Container
+                        │                                  (Async Email)
+                        ▼
+                    Database (MySQL)
 ```
 ---
 
@@ -59,11 +68,14 @@ Mengikuti standar Clean Architecture sederhana:
 │   ├── config/              # Load .env & konfigurasi
 │   ├── entity/              # Struct model database
 │   ├── handler/             # HTTP Handlers (Controller)
+│   ├── helper/              # Response wrapper, Pagination helper
 │   ├── middleware/          # Auth, RBAC, Logger, Recovery
+│   ├── queue/               # Redis Producer Logic (NEW)
 │   ├── repository/          # Data Access Layer (Implementation of Interfaces)
-│   └── helper/              # Response wrapper, Pagination helper
+│   └── service/             # Business Logic & Threshold Control (NEW)
 └── pkg/
     └── database/            # Database connection driver
+    └── redis/               # Redis connection driver
 ```
 ---
 
@@ -155,10 +167,10 @@ Audit trail memastikan setiap perubahan stok tercatat.
    go run cmd/api/main.go
    ```
 
-🐳 **Quick Start with Docker**
-Jika Anda memiliki Docker terinstal, cukup jalankan:
+🐳 **QMenggunakan Docker (Rekomendasi)**
+Cukup satu perintah untuk menjalankan API, Database, dan Redis:
 ```bash
-make docker-up
+docker-compose up --build
 ```
 
 
