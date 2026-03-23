@@ -10,7 +10,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func ConnectDB(cfg *config.DBConfig) (*sql.DB, error) {
+func ConnectDB(cfg *config.DbConfig) (*sql.DB, error) {
 	// Format: user:password@tcp(host:port)/dbname
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name)

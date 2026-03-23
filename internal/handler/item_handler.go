@@ -244,7 +244,7 @@ func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Panggil Service (Logic ada di dalam sini)
-	err := h.Service.UpdateStock(r.Context(), updateRequest, user.ID)
+	err := h.Service.UpdateStock(r.Context(), updateRequest, user)
 	if err != nil {
 		h.Logger.Error("Update stock failed", "error", err.Error(), "request_id", middleware.GetRequestID(r.Context()))
 

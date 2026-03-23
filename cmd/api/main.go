@@ -22,6 +22,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // @title Warehouse Management API
@@ -72,7 +74,7 @@ func main() {
 	}
 
 	// Koneksi DB
-	db, err := database.ConnectDB(cfg.Db)
+	db, err := database.ConnectDB(&cfg.Db)
 	if err != nil {
 		panic(err)
 	}
@@ -82,6 +84,14 @@ func main() {
 	rdb := redis.NewRedisClient(cfg.RedisAddress)
 	emailProducer := queue.NewEmailProducer(rdb, cfg.QueueName)
 
+	// Init Audit Service Client (gRPC)
+	conn, err := grpc.NewClient(cfg.AuditServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Error("Failed to connect to Audit Service", "error", err)
+		// Pertimbangkan untuk os.Exit(1) di sini jika koneksi ke audit service wajib
+	}
+	auditClient := service.NewAuditClient(conn, cfg.JWTSecret, logger)
+
 	// Init Repository
 	healthRepo := repository.NewHealthRepository(db)
 	itemRepo := repository.NewItemRepository(db)
@@ -89,7 +99,7 @@ func main() {
 	catRepo := repository.NewCategoryRepository(db)
 
 	// Init service
-	itemService := service.NewItemService(itemRepo, emailProducer, logger, cfg)
+	itemService := service.NewItemService(itemRepo, emailProducer, auditClient, logger, cfg)
 	categoryService := service.NewCategoryService(catRepo, logger)
 
 	// Init Handler (Sambil lempar repo-nya)

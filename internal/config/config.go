@@ -1,4 +1,3 @@
-// config/config.go
 package config
 
 import (
@@ -8,69 +7,68 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type DBConfig struct {
-	User     string
-	Password string
+type DbConfig struct {
 	Host     string
 	Port     string
+	User     string
+	Password string
 	Name     string
 }
 
 type AppConfig struct {
-	ApiKey              string
+	Db                  DbConfig
 	ApiPort             string
-	Db                  *DBConfig
 	RedisAddress        string
-	EnableLowStockAlert bool
-	LowStockAlertEmail  string
+	WarehouseID         string
 	QueueName           string
+	EnableLowStockAlert bool
 	LowStockThreshold   int
+	LowStockAlertEmail  string
+	AuditServiceURL     string
+	JWTSecret           string
+}
+
+func LoadConfig() (*AppConfig, error) {
+	godotenv.Load() // Abaikan error jika file .env tidak ada
+
+	cfg := &AppConfig{
+		Db: DbConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnv("DB_PORT", "3306"),
+			User:     getEnv("DB_USER", "root"),
+			Password: getEnv("DB_PASSWORD", ""),
+			Name:     getEnv("DB_NAME", "warehouse_db"),
+		},
+		ApiPort:             getEnv("API_PORT", "8080"),
+		RedisAddress:        getEnv("REDIS_ADDRESS", "localhost:6379"),
+		WarehouseID:         getEnv("WAREHOUSE_ID", "WH_001"),
+		QueueName:           getEnv("QUEUE_NAME", "email_jobs"),
+		AuditServiceURL:     getEnv("AUDIT_SERVICE_URL", "localhost:50051"),
+		JWTSecret:           getEnv("JWT_SECRET", "rahasia-super-aman"),
+		EnableLowStockAlert: getEnv("ENABLE_LOW_STOCK_ALERT", "true") == "true",
+		LowStockThreshold:   getEnvInt("LOW_STOCK_THRESHOLD", 5),
+		LowStockAlertEmail:  getEnv("LOW_STOCK_ALERT_EMAIL", "admin@example.com"),
+	}
+	return cfg, nil
+}
+
+// getEnv membaca environment variable atau mengembalikan nilai fallback.
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
 }
 
 func getEnvInt(key string, fallback int) int {
-	val := os.Getenv(key)
-	if val == "" {
+	val, exists := os.LookupEnv(key)
+	if !exists || val == "" {
 		return fallback
 	}
-	// Cek apakah string bisa diubah ke int
+
 	i, err := strconv.Atoi(val)
 	if err != nil {
 		return fallback
 	}
 	return i
-}
-
-func LoadConfig() (*AppConfig, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return nil, err
-	}
-
-	lowStockAlertEmail := os.Getenv("LOW_STOCK_ALERT_EMAIL")
-	if lowStockAlertEmail == "" {
-		lowStockAlertEmail = "admin@warehouse.com"
-	}
-	return &AppConfig{
-		ApiKey:  os.Getenv("API_KEY"),
-		ApiPort: os.Getenv("APP_PORT"),
-		Db: &DBConfig{
-			User:     os.Getenv("DB_USER"),
-			Password: os.Getenv("DB_PASSWORD"),
-			Host:     os.Getenv("DB_HOST"),
-			Port:     os.Getenv("DB_PORT"),
-			Name:     os.Getenv("DB_NAME"),
-		},
-		EnableLowStockAlert: os.Getenv("ENABLE_LOW_STOCK_ALERT") == "true",
-		LowStockAlertEmail:  lowStockAlertEmail,
-		RedisAddress:        os.Getenv("REDIS_ADDRESS"),
-		QueueName:           os.Getenv("QUEUE_NAME"),
-		LowStockThreshold:   getEnvInt("LOW_STOCK_THRESHOLD", 5),
-	}, nil
-}
-
-func GetEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
 }

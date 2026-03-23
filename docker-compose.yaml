@@ -40,6 +40,8 @@ services:
       REDIS_ADDRESS: redis:6379
       ENABLE_LOW_STOCK_ALERT: "true"
       LOW_STOCK_ALERT_EMAIL: "admin@warehouse.com"
+      AUDIT_SERVICE_URL: "localhost:50051"
+      JWT_SECRET: "rahasia-super-aman"
       DB_HOST: db
       DB_PORT: 3306
       DB_USER: root

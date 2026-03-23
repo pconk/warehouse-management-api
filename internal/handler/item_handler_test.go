@@ -257,7 +257,7 @@ func TestUpdateStock_Table(t *testing.T) {
 		Validate: validate,
 	}
 
-	user := &entity.User{ID: 1, Username: "admin"}
+	user := &entity.User{ID: 1, Username: "admin", Role: "admin"}
 
 	tests := []struct {
 		name           string
@@ -296,7 +296,7 @@ func TestUpdateStock_Table(t *testing.T) {
 			// Setup Mock sesuai skenario
 			// Kita hanya ekspektasi Service dipanggil jika validasi input di Handler lolos
 			if tt.name == "Success" || tt.expectedStatus == http.StatusInternalServerError || (tt.expectedStatus == http.StatusBadRequest && tt.mockReturn != nil) {
-				mockService.On("UpdateStock", mock.Anything, mock.Anything, 1).Return(tt.mockReturn).Once()
+				mockService.On("UpdateStock", mock.Anything, mock.Anything, user).Return(tt.mockReturn).Once()
 			}
 
 			req := httptest.NewRequest("POST", "/items/update-stock", strings.NewReader(tt.inputBody))

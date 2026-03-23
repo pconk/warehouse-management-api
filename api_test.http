@@ -127,7 +127,7 @@ X-API-KEY: {{adminKey}}
     "item_id": 11,
     "type": "OUT",
     "quantity": 1,
-    "reason": "Sold to customer - Order #INV003"
+    "reason": "Sold to customer - Order #INV006"
 }
 
 ###

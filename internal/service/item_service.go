@@ -7,12 +7,15 @@ import (
 	"warehouse-management-api/internal/config"
 	"warehouse-management-api/internal/entity"
 	"warehouse-management-api/internal/middleware"
+	pbAudit "warehouse-management-api/internal/pb/audit"
 	"warehouse-management-api/internal/queue"
 	"warehouse-management-api/internal/repository"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ItemServiceInterface interface {
-	UpdateStock(ctx context.Context, req entity.UpdateStockRequest, userID int) error
+	UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User) error
 	GetAll(ctx context.Context, limit, offset int, filterName string, filterCatID int) ([]entity.Item, int64, error)
 	GetAllForExport(ctx context.Context) ([]entity.Item, error)
 	GetByID(ctx context.Context, id int) (*entity.Item, error)
@@ -25,34 +28,57 @@ type ItemServiceInterface interface {
 type itemService struct {
 	repo     repository.ItemRepositoryInterface
 	producer queue.EmailProducerInterface // Interface untuk push ke Redis
+	audit    AuditClientInterface         // Client gRPC Audit
 	logger   *slog.Logger
 	cfg      *config.AppConfig
 }
 
-func NewItemService(r repository.ItemRepositoryInterface, p queue.EmailProducerInterface, l *slog.Logger, c *config.AppConfig) ItemServiceInterface {
-	return &itemService{repo: r, producer: p, logger: l, cfg: c}
+func NewItemService(r repository.ItemRepositoryInterface, p queue.EmailProducerInterface, a AuditClientInterface, l *slog.Logger, c *config.AppConfig) ItemServiceInterface {
+	return &itemService{repo: r, producer: p, audit: a, logger: l, cfg: c}
 }
 
-func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockRequest, userID int) error {
+func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User) error {
 	// 1. Ambil data stok SEBELUM update
-	var oldItem *entity.Item
-	var err error
-
-	if s.cfg.EnableLowStockAlert {
-		oldItem, err = s.repo.FindByID(req.ItemID)
-		if err != nil || oldItem == nil {
-			return fmt.Errorf("item not found")
-		}
+	// Kita butuh data item (Name, SKU, OldStock) baik untuk Alert maupun Audit
+	oldItem, err := s.repo.FindByID(req.ItemID)
+	if err != nil || oldItem == nil {
+		return fmt.Errorf("item not found")
 	}
+
 	// 2. Eksekusi update ke Database
-	err = s.repo.UpdateStock(req, userID)
+	err = s.repo.UpdateStock(req, user.ID)
 	if err != nil {
 		return err // Kembalikan error (misal: "insufficient stock")
 	}
 
-	// 2. Business Logic: Cek stok untuk notifikasi
+	// 3. Hitung Stok Akhir (Estimasi) untuk keperluan Log/Alert
+	// Idealnya fetch lagi dari DB untuk akurasi, tapi estimasi di sini cukup untuk log
+	qtyChange := req.Quantity
+	if req.Type == "OUT" {
+		qtyChange = -qtyChange
+	}
+	finalStock := oldItem.Stock + qtyChange
+
+	// 4. Kirim Audit Log (Async via Goroutine di dalam Client Wrapper)
+	s.audit.LogActivity(&pbAudit.AuditRequest{
+		Username:        user.Username,
+		Role:            user.Role,
+		WarehouseId:     s.cfg.WarehouseID,
+		Action:          fmt.Sprintf("STOCK_%s", req.Type),
+		Sku:             oldItem.SKU,
+		ProductName:     oldItem.Name,
+		QuantityChanged: int32(qtyChange),
+		FinalStock:      int32(finalStock),
+		Timestamp:       timestamppb.Now(),
+		Metadata: map[string]string{
+			"source":     "warehouse-api",
+			"request_id": middleware.GetRequestID(ctx),
+		},
+	})
+
+	// 5. Business Logic: Cek stok untuk notifikasi
 	if s.cfg.EnableLowStockAlert && oldItem != nil {
-		// 3. Ambil data stok SESUDAH update
+		// Cek apakah stok jatuh menembus threshold
 		newItem, err := s.repo.FindByID(req.ItemID)
 		if err != nil || newItem == nil {
 			return nil // Data update masuk tapi gagal ambil info terbaru, abaikan alert

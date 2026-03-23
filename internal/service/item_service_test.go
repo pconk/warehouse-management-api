@@ -9,6 +9,7 @@ import (
 	"time"
 	"warehouse-management-api/internal/config"
 	"warehouse-management-api/internal/entity"
+	audit "warehouse-management-api/internal/pb/audit"
 	"warehouse-management-api/internal/queue"
 	"warehouse-management-api/internal/repository"
 	"warehouse-management-api/internal/service"
@@ -17,11 +18,21 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// MockAuditClient
+type MockAuditClient struct {
+	mock.Mock
+}
+
+func (m *MockAuditClient) LogActivity(req *audit.AuditRequest) {
+	m.Called(req)
+}
+
 // --- SETUP HELPER ---
 // Helper agar tidak mengulang kode inisialisasi di setiap test function
-func setupItemService(t *testing.T) (service.ItemServiceInterface, *repository.MockItemRepo, *queue.MockEmailProducer) {
+func setupItemService(t *testing.T) (service.ItemServiceInterface, *repository.MockItemRepo, *queue.MockEmailProducer, *MockAuditClient) {
 	mockRepo := new(repository.MockItemRepo)
 	mockProducer := new(queue.MockEmailProducer)
+	mockAudit := new(MockAuditClient)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	cfg := &config.AppConfig{
@@ -30,14 +41,14 @@ func setupItemService(t *testing.T) (service.ItemServiceInterface, *repository.M
 		LowStockAlertEmail:  "admin@test.com",
 	}
 
-	svc := service.NewItemService(mockRepo, mockProducer, logger, cfg)
-	return svc, mockRepo, mockProducer
+	svc := service.NewItemService(mockRepo, mockProducer, mockAudit, logger, cfg)
+	return svc, mockRepo, mockProducer, mockAudit
 }
 
 // --- TEST CASES ---
 
 func TestItemService_GetByID(t *testing.T) {
-	svc, mockRepo, _ := setupItemService(t)
+	svc, mockRepo, _, _ := setupItemService(t)
 
 	t.Run("Found", func(t *testing.T) {
 		expectedItem := &entity.Item{ID: 1, Name: "Kopi", Stock: 10}
@@ -66,7 +77,7 @@ func TestItemService_GetByID(t *testing.T) {
 }
 
 func TestItemService_GetAll(t *testing.T) {
-	svc, mockRepo, _ := setupItemService(t)
+	svc, mockRepo, _, _ := setupItemService(t)
 
 	t.Run("Success", func(t *testing.T) {
 		mockItems := []entity.Item{
@@ -96,7 +107,7 @@ func TestItemService_GetAll(t *testing.T) {
 }
 
 func TestItemService_Create(t *testing.T) {
-	svc, mockRepo, _ := setupItemService(t)
+	svc, mockRepo, _, _ := setupItemService(t)
 
 	newItem := entity.Item{Name: "New Item", SKU: "NEW-001"}
 
@@ -116,7 +127,7 @@ func TestItemService_Create(t *testing.T) {
 }
 
 func TestItemService_Update(t *testing.T) {
-	svc, mockRepo, _ := setupItemService(t)
+	svc, mockRepo, _, _ := setupItemService(t)
 
 	id := 1
 	updateReq := entity.UpdateItemRequest{Name: "Updated Name"}
@@ -128,7 +139,7 @@ func TestItemService_Update(t *testing.T) {
 }
 
 func TestItemService_Delete(t *testing.T) {
-	svc, mockRepo, _ := setupItemService(t)
+	svc, mockRepo, _, _ := setupItemService(t)
 
 	mockRepo.On("Delete", 1).Return(nil).Once()
 
@@ -138,7 +149,7 @@ func TestItemService_Delete(t *testing.T) {
 
 func TestItemService_UpdateStock_Logic(t *testing.T) {
 	// Setup
-	svc, mockRepo, mockProducer := setupItemService(t)
+	svc, mockRepo, mockProducer, mockAudit := setupItemService(t)
 
 	// Table Driven Test untuk berbagai skenario stok
 	tests := []struct {
@@ -174,11 +185,11 @@ func TestItemService_UpdateStock_Logic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			itemID := 100
-			userID := 1
+			user := &entity.User{ID: 1, Username: "Budi", Role: "Staff"}
 			req := entity.UpdateStockRequest{ItemID: itemID, Type: "OUT", Quantity: tt.reqQty}
 
 			// Data Sebelum Update
-			itemBefore := &entity.Item{ID: itemID, Name: "Test Item", Stock: tt.oldStock}
+			itemBefore := &entity.Item{ID: itemID, Name: "Test Item", SKU: "TEST-001", Stock: tt.oldStock}
 			// Data Sesudah Update
 			itemAfter := &entity.Item{ID: itemID, Name: "Test Item", Stock: tt.newStock}
 
@@ -186,7 +197,7 @@ func TestItemService_UpdateStock_Logic(t *testing.T) {
 			mockRepo.On("FindByID", itemID).Return(itemBefore, nil).Once()
 
 			// 2. Mock UpdateStock (Action DB)
-			mockRepo.On("UpdateStock", req, userID).Return(nil).Once()
+			mockRepo.On("UpdateStock", req, user.ID).Return(nil).Once()
 
 			// 3. Mock FindByID (Sesudah, untuk cek logic alert)
 			// Method ini hanya dipanggil jika oldStock ditemukan
@@ -199,8 +210,11 @@ func TestItemService_UpdateStock_Logic(t *testing.T) {
 				})).Return(nil).Once()
 			}
 
+			// 5. Mock Audit (Expect LogActivity called)
+			mockAudit.On("LogActivity", mock.Anything).Return().Once()
+
 			// EXECUTE
-			err := svc.UpdateStock(context.Background(), req, userID)
+			err := svc.UpdateStock(context.Background(), req, user)
 
 			// ASSERT
 			assert.NoError(t, err)
@@ -212,6 +226,7 @@ func TestItemService_UpdateStock_Logic(t *testing.T) {
 
 			mockRepo.AssertExpectations(t)
 			mockProducer.AssertExpectations(t)
+			mockAudit.AssertExpectations(t)
 		})
 	}
 }
