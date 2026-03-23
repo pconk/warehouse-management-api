@@ -1,5 +1,5 @@
 [![Go CI](https://github.com/pconk/warehouse-management-api/actions/workflows/ci.yml/badge.svg)](https://github.com/pconk/warehouse-management-api/actions/workflows/ci.yml)
-![Coverage](https://img.shields.io/badge/coverage-74%25-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-70%25-brightgreen)
 
 ------------------------------
 ### Warehouse Management API 📦
@@ -17,6 +17,8 @@ API sederhana namun production-ready untuk mengelola stok gudang, kategori baran
 * Graceful Shutdown: Memastikan server berhenti dengan aman tanpa memutus transaksi yang sedang berjalan.
 * **Asynchronous Low Stock Alert**: Mengirim notifikasi otomatis via Email (simulasi) saat stok barang turun di bawah ambang batas (threshold) menggunakan background worker.
 * **Message Broker Integration**: Menggunakan ***Redis*** untuk antrean tugas (task queue) agar performa API tetap responsif meskipun sistem sedang mengirim ribuan email.
+* **Microservices Integration (gRPC)**: Mengirim data log transaksi ke layanan eksternal (**Async Audit Service**) secara asinkronus menggunakan protokol gRPC yang efisien.
+* **Double-Layer Audit Logging**: Selain mencatat di MySQL lokal, sistem juga mengirimkan immutable logs ke MongoDB via Audit Service untuk keperluan data integrity yang lebih tinggi.
 
 🚀 Advanced Features
 
@@ -24,14 +26,20 @@ API sederhana namun production-ready untuk mengelola stok gudang, kategori baran
 Fitur ini khusus diimplementasikan pada **Update Stock**. Jika stok turun di bawah ambang batas (threshold), sistem akan mengirimkan job ke Redis.
 * **Worker Isolation**: Proses pengiriman email dilakukan oleh container terpisah (Worker) sehingga tidak membebani performa API utama.
 * **Configurable**: Fitur ini dapat diaktifkan atau dimatikan melalui environment variable tanpa mengubah kode.
+#
+🛰️ ***Microservices: Async gRPC Audit***
+Fitur ini memisahkan beban kerja pencatatan histori transaksi yang berat ke service terpisah.
+* **Non-Blocking Execution**: Menggunakan Go Routine di layer Service, sehingga API tetap memberikan respon cepat ke user tanpa menunggu proses audit selesai.
+* **Inter-Service Security**: Komunikasi antar-service diamankan menggunakan **JWT Authentication** pada header metadata gRPC.
 
 ---
 
 🛠️ ***Tech Stack***
 
 * Language: ***Go (Golang)***
+* Communication: ***gRPC & Protocol Buffers*** 
 * Router: go-chi/chi (Lightweight & Standard Library compatible)
-* Database: ***MySQL***
+* Database: ***MySQL*** & ***MongoDB*** (Audit via Service)
 * Queue/Broker: ***Redis***
 * Validation: [go-playground/validator](https://github.com/go-playground/validator)
 * Logging: slog (Structured Logging)
@@ -57,13 +65,16 @@ Project menggunakan pendekatan **Clean Architecture sederhana**.
     │       Handlers       │ ───▶ (Request Validation & Response Mapping)
     └──────────┬───────────┘
                │
-      [ Business Logic Layer ]
+    [ Business Logic Layer ]
                ▼
-    ┌──────────────────────┐      ┌────────────────────────┐
-    │    Service Layer     │ ───▶ │ Async Worker (Redis)   │
-    │ (Core Business Rules)│      │  (Email/Notifications) │
-    └──────────┬───────────┘      └────────────────────────┘
-               │
+    ┌──────────────────────┐       ┌────────────────────────┐
+    │     Service Layer    │ ───┬─▶│ Async Worker (Redis)   │
+    │ (Core Business Rules)│    │  │  (Email/Notifications) │
+    └──────────┬───────────┘    │  └────────────────────────┘
+               │                │  ┌────────────────────────┐
+               │                └─▶│  Async Audit Service   │
+               │                   │    (via gRPC + Proto)  │
+               ▼                   └────────────────────────┘
        [ Data Access Layer ]
                ▼
     ┌──────────────────────┐      ┌────────────────────────┐
@@ -71,6 +82,9 @@ Project menggunakan pendekatan **Clean Architecture sederhana**.
     │  (SQL/Data Mapping)  │    └▶│    Cache/Queue (Redis) │
     └──────────────────────┘      └────────────────────────┘
 ```
+
+Sistem ini kini beroperasi dalam arsitektur terdistribusi. **Warehouse API** fokus pada transaksi bisnis (OLTP), sementara **Audit Service** fokus pada pengarsipan jejak digital (Logging) secara asinkronus untuk memastikan performa maksimal.
+
 ---
 
 📁 ***Struktur Project***
@@ -87,6 +101,7 @@ Mengikuti standar Clean Architecture sederhana:
 │   ├── queue/               # Redis Producer Logic (NEW)
 │   ├── repository/          # Data Access Layer (Implementation of Interfaces)
 │   └── service/             # Business Logic & Threshold Control (NEW)
+├── pb/                      # Generated code dari protoc
 └── pkg/
     └── database/            # Database connection driver
     └── redis/               # Redis connection driver
