@@ -1,7 +1,7 @@
 ### Variabel Global
 @baseUrl = http://localhost:8080
-@adminKey = secret-admin-key
-@staffKey = secret-staff-key
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ3NzIxNTYsImlzcyI6ImF1ZGl0LXNlcnZpY2UtdGVzdCIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOiIxIiwidXNlcm5hbWUiOiJhZG1pbl9ndWRhbmciLCJ3YXJlaG91c2VfaWQiOiJXSC1KS1QtMDk5In0.4xsVcbm5vnvNLb45_Z1e2xQZFnwry053IkM1QTEVmJA
+# @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ3NzIxNTYsImlzcyI6ImF1ZGl0LXNlcnZpY2UtdGVzdCIsInJvbGUiOiJzdGFmZiIsInVzZXJfaWQiOiIyIiwidXNlcm5hbWUiOiJzdGFmZl9idWRpIiwid2FyZWhvdXNlX2lkIjoiV0gtSktULTA5OSJ9.0um17em2mrYmBF_O_l9P6AaO3S8FKYJ1SfBv1FTnh9M
 @contentType = application/json
 
 ### ==========================================
@@ -10,20 +10,20 @@
 
 # Ambil semua kategori (Electronics, Furniture, Stationery)
 GET {{baseUrl}}/categories
-X-API-KEY: {{staffKey}}
+Authorization: Bearer {{token}}
 
 ###
 
 # Ambil kategori per ID
-GET {{baseUrl}}/categories/5
-X-API-KEY: {{staffKey}}
+GET {{baseUrl}}/categories/2
+Authorization: Bearer {{token}}
 
 ###
 
 # Tambah kategori baru
 POST {{baseUrl}}/categories
 Content-Type: {{contentType}}
-X-API-KEY: {{adminKey}}
+Authorization: Bearer {{token}}
 
 {
     "name": "Printer",
@@ -35,7 +35,7 @@ X-API-KEY: {{adminKey}}
 # Update kategori
 PUT {{baseUrl}}/categories/5
 Content-Type: {{contentType}}
-X-API-KEY: {{adminKey}}
+Authorization: Bearer {{token}}
 
 {
     "name": "Printer2",
@@ -47,7 +47,7 @@ X-API-KEY: {{adminKey}}
 # Delete kategori
 DELETE  {{baseUrl}}/categories/5
 Content-Type: {{contentType}}
-X-API-KEY: {{adminKey}}
+Authorization: Bearer {{token}}
 
 ###
 
@@ -58,27 +58,27 @@ X-API-KEY: {{adminKey}}
 # Ambil semua daftar barang beserta stoknya
 # GET {{baseUrl}}/items?page=1&limit=10&name=lo&category=1
 GET {{baseUrl}}/items?page=1&limit=10&category_id=1
-X-API-KEY: {{staffKey}}
+Authorization: Bearer {{token}}
 
 ###
 
 # Cari barang spesifik (Misal: MacBook Pro M2)
 # Sesuaikan ID 1 sesuai hasil insert di DB
 GET {{baseUrl}}/items/11
-X-API-KEY: {{staffKey}}
+Authorization: Bearer {{token}}
 
 ###
 
 # Export csv, semua daftar barang beserta stoknya
 GET {{baseUrl}}/items/export
-X-API-KEY: {{staffKey}}
+Authorization: Bearer {{token}}
 
 ###
 
 # Tambah barang baru (Contoh: Monitor) ke kategori Electronics (ID: 1)
 POST {{baseUrl}}/items/create
 Content-Type: {{contentType}}
-X-API-KEY: {{staffKey}}
+Authorization: Bearer {{token}}
 
 {
     "category_id": 1,
@@ -93,7 +93,7 @@ X-API-KEY: {{staffKey}}
 # Update barang
 PUT {{baseUrl}}/items/11
 Content-Type: {{contentType}}
-X-API-KEY: {{adminKey}}
+Authorization: Bearer {{token}}
 
 {
     "category_id": 1,    
@@ -107,11 +107,10 @@ X-API-KEY: {{adminKey}}
 ### 3. RIWAYAT STOK (STOCK LOGS)
 ### ==========================================
 
-# BELUM ADA
 # Lihat riwayat keluar/masuk barang tertentu (Item ID: 2)
 # GET {{baseUrl}}/items/stock-logs?page=1&limit=10&item_id=1&type=IN
 GET {{baseUrl}}/items/stock-logs?page=1&limit=10&item_id=1
-X-API-KEY: {{staffKey}}
+Authorization: Bearer {{token}}
 
 ###
 
@@ -121,13 +120,13 @@ X-API-KEY: {{staffKey}}
 # "reason": "Sold to customer - Order #INV001"
 POST {{baseUrl}}/items/update-stock
 Content-Type: {{contentType}}
-X-API-KEY: {{adminKey}}
+Authorization: Bearer {{token}}
 
 {
-    "item_id": 11,
+    "item_id": 4,
     "type": "OUT",
     "quantity": 1,
-    "reason": "Sold to customer - Order #INV006"
+    "reason": "Sold to customer - Order #INV001"
 }
 
 ###
@@ -135,7 +134,7 @@ X-API-KEY: {{adminKey}}
 # Delete barang (soft delete)- ADMIN ONLY
 DELETE  {{baseUrl}}/items/2
 Content-Type: {{contentType}}
-X-API-KEY: {{adminKey}}
+Authorization: Bearer {{token}}
 
 ###
 

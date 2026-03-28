@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.1
-// source: audit/audit.proto
+// source: proto/audit.proto
 
 package pb
 
@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuditService_LogActivity_FullMethodName = "/audit.AuditService/LogActivity"
+	AuditService_LogActivity_FullMethodName   = "/audit.AuditService/LogActivity"
+	AuditService_GetRecentLogs_FullMethodName = "/audit.AuditService/GetRecentLogs"
 )
 
 // AuditServiceClient is the client API for AuditService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuditServiceClient interface {
 	LogActivity(ctx context.Context, in *AuditRequest, opts ...grpc.CallOption) (*AuditResponse, error)
+	GetRecentLogs(ctx context.Context, in *GetRecentLogsRequest, opts ...grpc.CallOption) (*GetRecentLogsResponse, error)
 }
 
 type auditServiceClient struct {
@@ -47,11 +49,22 @@ func (c *auditServiceClient) LogActivity(ctx context.Context, in *AuditRequest, 
 	return out, nil
 }
 
+func (c *auditServiceClient) GetRecentLogs(ctx context.Context, in *GetRecentLogsRequest, opts ...grpc.CallOption) (*GetRecentLogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRecentLogsResponse)
+	err := c.cc.Invoke(ctx, AuditService_GetRecentLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuditServiceServer is the server API for AuditService service.
 // All implementations must embed UnimplementedAuditServiceServer
 // for forward compatibility.
 type AuditServiceServer interface {
 	LogActivity(context.Context, *AuditRequest) (*AuditResponse, error)
+	GetRecentLogs(context.Context, *GetRecentLogsRequest) (*GetRecentLogsResponse, error)
 	mustEmbedUnimplementedAuditServiceServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedAuditServiceServer struct{}
 
 func (UnimplementedAuditServiceServer) LogActivity(context.Context, *AuditRequest) (*AuditResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method LogActivity not implemented")
+}
+func (UnimplementedAuditServiceServer) GetRecentLogs(context.Context, *GetRecentLogsRequest) (*GetRecentLogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRecentLogs not implemented")
 }
 func (UnimplementedAuditServiceServer) mustEmbedUnimplementedAuditServiceServer() {}
 func (UnimplementedAuditServiceServer) testEmbeddedByValue()                      {}
@@ -104,6 +120,24 @@ func _AuditService_LogActivity_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuditService_GetRecentLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRecentLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuditServiceServer).GetRecentLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuditService_GetRecentLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuditServiceServer).GetRecentLogs(ctx, req.(*GetRecentLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuditService_ServiceDesc is the grpc.ServiceDesc for AuditService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,7 +149,11 @@ var AuditService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "LogActivity",
 			Handler:    _AuditService_LogActivity_Handler,
 		},
+		{
+			MethodName: "GetRecentLogs",
+			Handler:    _AuditService_GetRecentLogs_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "audit/audit.proto",
+	Metadata: "proto/audit.proto",
 }

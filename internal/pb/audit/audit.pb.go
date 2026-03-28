@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: audit/audit.proto
+// source: proto/audit.proto
 
 package pb
 
@@ -25,25 +25,26 @@ const (
 type AuditRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Pelaku & Lokasi
-	Username    string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	WarehouseId string `protobuf:"bytes,2,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
-	Role        string `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	UserId      int64  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Username    string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	WarehouseId string `protobuf:"bytes,3,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
+	Role        string `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
 	// Detail Transaksi
-	Action          string `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"` // Contoh: "STOCK_OUT", "ADJUSTMENT"
-	Sku             string `protobuf:"bytes,5,opt,name=sku,proto3" json:"sku,omitempty"`
-	ProductName     string `protobuf:"bytes,6,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
-	QuantityChanged int32  `protobuf:"varint,7,opt,name=quantity_changed,json=quantityChanged,proto3" json:"quantity_changed,omitempty"`
-	FinalStock      int32  `protobuf:"varint,8,opt,name=final_stock,json=finalStock,proto3" json:"final_stock,omitempty"`
+	Action          string `protobuf:"bytes,5,opt,name=action,proto3" json:"action,omitempty"` // Contoh: "STOCK_OUT", "ADJUSTMENT"
+	Sku             string `protobuf:"bytes,6,opt,name=sku,proto3" json:"sku,omitempty"`
+	ProductName     string `protobuf:"bytes,7,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
+	QuantityChanged int32  `protobuf:"varint,8,opt,name=quantity_changed,json=quantityChanged,proto3" json:"quantity_changed,omitempty"`
+	FinalStock      int32  `protobuf:"varint,9,opt,name=final_stock,json=finalStock,proto3" json:"final_stock,omitempty"`
 	// Metadata & Waktu
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Metadata      map[string]string      `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Digunakan untuk {"request_id": "UUID"}
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Metadata      map[string]string      `protobuf:"bytes,11,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Digunakan untuk {"request_id": "UUID"}
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AuditRequest) Reset() {
 	*x = AuditRequest{}
-	mi := &file_audit_audit_proto_msgTypes[0]
+	mi := &file_proto_audit_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -55,7 +56,7 @@ func (x *AuditRequest) String() string {
 func (*AuditRequest) ProtoMessage() {}
 
 func (x *AuditRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_audit_audit_proto_msgTypes[0]
+	mi := &file_proto_audit_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -68,7 +69,14 @@ func (x *AuditRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditRequest.ProtoReflect.Descriptor instead.
 func (*AuditRequest) Descriptor() ([]byte, []int) {
-	return file_audit_audit_proto_rawDescGZIP(), []int{0}
+	return file_proto_audit_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *AuditRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 func (x *AuditRequest) GetUsername() string {
@@ -141,6 +149,132 @@ func (x *AuditRequest) GetMetadata() map[string]string {
 	return nil
 }
 
+type RecentLog struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Pelaku & Lokasi
+	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId      int64  `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Username    string `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
+	WarehouseId string `protobuf:"bytes,4,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
+	Role        string `protobuf:"bytes,5,opt,name=role,proto3" json:"role,omitempty"`
+	// Detail Transaksi
+	Action          string                 `protobuf:"bytes,6,opt,name=action,proto3" json:"action,omitempty"` // Contoh: "STOCK_OUT", "ADJUSTMENT"
+	Sku             string                 `protobuf:"bytes,7,opt,name=sku,proto3" json:"sku,omitempty"`
+	ProductName     string                 `protobuf:"bytes,8,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
+	QuantityChanged int32                  `protobuf:"varint,9,opt,name=quantity_changed,json=quantityChanged,proto3" json:"quantity_changed,omitempty"`
+	FinalStock      int32                  `protobuf:"varint,10,opt,name=final_stock,json=finalStock,proto3" json:"final_stock,omitempty"`
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RecentLog) Reset() {
+	*x = RecentLog{}
+	mi := &file_proto_audit_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecentLog) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecentLog) ProtoMessage() {}
+
+func (x *RecentLog) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_audit_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecentLog.ProtoReflect.Descriptor instead.
+func (*RecentLog) Descriptor() ([]byte, []int) {
+	return file_proto_audit_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *RecentLog) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RecentLog) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *RecentLog) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *RecentLog) GetWarehouseId() string {
+	if x != nil {
+		return x.WarehouseId
+	}
+	return ""
+}
+
+func (x *RecentLog) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *RecentLog) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *RecentLog) GetSku() string {
+	if x != nil {
+		return x.Sku
+	}
+	return ""
+}
+
+func (x *RecentLog) GetProductName() string {
+	if x != nil {
+		return x.ProductName
+	}
+	return ""
+}
+
+func (x *RecentLog) GetQuantityChanged() int32 {
+	if x != nil {
+		return x.QuantityChanged
+	}
+	return 0
+}
+
+func (x *RecentLog) GetFinalStock() int32 {
+	if x != nil {
+		return x.FinalStock
+	}
+	return 0
+}
+
+func (x *RecentLog) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
 type AuditResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
@@ -150,7 +284,7 @@ type AuditResponse struct {
 
 func (x *AuditResponse) Reset() {
 	*x = AuditResponse{}
-	mi := &file_audit_audit_proto_msgTypes[1]
+	mi := &file_proto_audit_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -162,7 +296,7 @@ func (x *AuditResponse) String() string {
 func (*AuditResponse) ProtoMessage() {}
 
 func (x *AuditResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_audit_audit_proto_msgTypes[1]
+	mi := &file_proto_audit_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -175,7 +309,7 @@ func (x *AuditResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditResponse.ProtoReflect.Descriptor instead.
 func (*AuditResponse) Descriptor() ([]byte, []int) {
-	return file_audit_audit_proto_rawDescGZIP(), []int{1}
+	return file_proto_audit_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AuditResponse) GetSuccess() bool {
@@ -185,83 +319,199 @@ func (x *AuditResponse) GetSuccess() bool {
 	return false
 }
 
-var File_audit_audit_proto protoreflect.FileDescriptor
+type GetRecentLogsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Logs          []*RecentLog           `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_audit_audit_proto_rawDesc = "" +
+func (x *GetRecentLogsResponse) Reset() {
+	*x = GetRecentLogsResponse{}
+	mi := &file_proto_audit_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRecentLogsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRecentLogsResponse) ProtoMessage() {}
+
+func (x *GetRecentLogsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_audit_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRecentLogsResponse.ProtoReflect.Descriptor instead.
+func (*GetRecentLogsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_audit_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetRecentLogsResponse) GetLogs() []*RecentLog {
+	if x != nil {
+		return x.Logs
+	}
+	return nil
+}
+
+type GetRecentLogsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRecentLogsRequest) Reset() {
+	*x = GetRecentLogsRequest{}
+	mi := &file_proto_audit_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRecentLogsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRecentLogsRequest) ProtoMessage() {}
+
+func (x *GetRecentLogsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_audit_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRecentLogsRequest.ProtoReflect.Descriptor instead.
+func (*GetRecentLogsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_audit_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetRecentLogsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+var File_proto_audit_proto protoreflect.FileDescriptor
+
+const file_proto_audit_proto_rawDesc = "" +
 	"\n" +
-	"\x11audit/audit.proto\x12\x05audit\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb0\x03\n" +
-	"\fAuditRequest\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12!\n" +
-	"\fwarehouse_id\x18\x02 \x01(\tR\vwarehouseId\x12\x12\n" +
-	"\x04role\x18\x03 \x01(\tR\x04role\x12\x16\n" +
-	"\x06action\x18\x04 \x01(\tR\x06action\x12\x10\n" +
-	"\x03sku\x18\x05 \x01(\tR\x03sku\x12!\n" +
-	"\fproduct_name\x18\x06 \x01(\tR\vproductName\x12)\n" +
-	"\x10quantity_changed\x18\a \x01(\x05R\x0fquantityChanged\x12\x1f\n" +
-	"\vfinal_stock\x18\b \x01(\x05R\n" +
+	"\x11proto/audit.proto\x12\x05audit\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc9\x03\n" +
+	"\fAuditRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1a\n" +
+	"\busername\x18\x02 \x01(\tR\busername\x12!\n" +
+	"\fwarehouse_id\x18\x03 \x01(\tR\vwarehouseId\x12\x12\n" +
+	"\x04role\x18\x04 \x01(\tR\x04role\x12\x16\n" +
+	"\x06action\x18\x05 \x01(\tR\x06action\x12\x10\n" +
+	"\x03sku\x18\x06 \x01(\tR\x03sku\x12!\n" +
+	"\fproduct_name\x18\a \x01(\tR\vproductName\x12)\n" +
+	"\x10quantity_changed\x18\b \x01(\x05R\x0fquantityChanged\x12\x1f\n" +
+	"\vfinal_stock\x18\t \x01(\x05R\n" +
 	"finalStock\x128\n" +
-	"\ttimestamp\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12=\n" +
-	"\bmetadata\x18\n" +
-	" \x03(\v2!.audit.AuditRequest.MetadataEntryR\bmetadata\x1a;\n" +
+	"\ttimestamp\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12=\n" +
+	"\bmetadata\x18\v \x03(\v2!.audit.AuditRequest.MetadataEntryR\bmetadata\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\")\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdb\x02\n" +
+	"\tRecentLog\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1a\n" +
+	"\busername\x18\x03 \x01(\tR\busername\x12!\n" +
+	"\fwarehouse_id\x18\x04 \x01(\tR\vwarehouseId\x12\x12\n" +
+	"\x04role\x18\x05 \x01(\tR\x04role\x12\x16\n" +
+	"\x06action\x18\x06 \x01(\tR\x06action\x12\x10\n" +
+	"\x03sku\x18\a \x01(\tR\x03sku\x12!\n" +
+	"\fproduct_name\x18\b \x01(\tR\vproductName\x12)\n" +
+	"\x10quantity_changed\x18\t \x01(\x05R\x0fquantityChanged\x12\x1f\n" +
+	"\vfinal_stock\x18\n" +
+	" \x01(\x05R\n" +
+	"finalStock\x129\n" +
+	"\n" +
+	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\")\n" +
 	"\rAuditResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2H\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"=\n" +
+	"\x15GetRecentLogsResponse\x12$\n" +
+	"\x04logs\x18\x01 \x03(\v2\x10.audit.RecentLogR\x04logs\",\n" +
+	"\x14GetRecentLogsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit2\x94\x01\n" +
 	"\fAuditService\x128\n" +
-	"\vLogActivity\x12\x13.audit.AuditRequest\x1a\x14.audit.AuditResponseB\x18Z\x16async-audit-service/pbb\x06proto3"
+	"\vLogActivity\x12\x13.audit.AuditRequest\x1a\x14.audit.AuditResponse\x12J\n" +
+	"\rGetRecentLogs\x12\x1b.audit.GetRecentLogsRequest\x1a\x1c.audit.GetRecentLogsResponseB\x18Z\x16async-audit-service/pbb\x06proto3"
 
 var (
-	file_audit_audit_proto_rawDescOnce sync.Once
-	file_audit_audit_proto_rawDescData []byte
+	file_proto_audit_proto_rawDescOnce sync.Once
+	file_proto_audit_proto_rawDescData []byte
 )
 
-func file_audit_audit_proto_rawDescGZIP() []byte {
-	file_audit_audit_proto_rawDescOnce.Do(func() {
-		file_audit_audit_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_audit_audit_proto_rawDesc), len(file_audit_audit_proto_rawDesc)))
+func file_proto_audit_proto_rawDescGZIP() []byte {
+	file_proto_audit_proto_rawDescOnce.Do(func() {
+		file_proto_audit_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_audit_proto_rawDesc), len(file_proto_audit_proto_rawDesc)))
 	})
-	return file_audit_audit_proto_rawDescData
+	return file_proto_audit_proto_rawDescData
 }
 
-var file_audit_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_audit_audit_proto_goTypes = []any{
+var file_proto_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_proto_audit_proto_goTypes = []any{
 	(*AuditRequest)(nil),          // 0: audit.AuditRequest
-	(*AuditResponse)(nil),         // 1: audit.AuditResponse
-	nil,                           // 2: audit.AuditRequest.MetadataEntry
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*RecentLog)(nil),             // 1: audit.RecentLog
+	(*AuditResponse)(nil),         // 2: audit.AuditResponse
+	(*GetRecentLogsResponse)(nil), // 3: audit.GetRecentLogsResponse
+	(*GetRecentLogsRequest)(nil),  // 4: audit.GetRecentLogsRequest
+	nil,                           // 5: audit.AuditRequest.MetadataEntry
+	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
 }
-var file_audit_audit_proto_depIdxs = []int32{
-	3, // 0: audit.AuditRequest.timestamp:type_name -> google.protobuf.Timestamp
-	2, // 1: audit.AuditRequest.metadata:type_name -> audit.AuditRequest.MetadataEntry
-	0, // 2: audit.AuditService.LogActivity:input_type -> audit.AuditRequest
-	1, // 3: audit.AuditService.LogActivity:output_type -> audit.AuditResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+var file_proto_audit_proto_depIdxs = []int32{
+	6, // 0: audit.AuditRequest.timestamp:type_name -> google.protobuf.Timestamp
+	5, // 1: audit.AuditRequest.metadata:type_name -> audit.AuditRequest.MetadataEntry
+	6, // 2: audit.RecentLog.created_at:type_name -> google.protobuf.Timestamp
+	1, // 3: audit.GetRecentLogsResponse.logs:type_name -> audit.RecentLog
+	0, // 4: audit.AuditService.LogActivity:input_type -> audit.AuditRequest
+	4, // 5: audit.AuditService.GetRecentLogs:input_type -> audit.GetRecentLogsRequest
+	2, // 6: audit.AuditService.LogActivity:output_type -> audit.AuditResponse
+	3, // 7: audit.AuditService.GetRecentLogs:output_type -> audit.GetRecentLogsResponse
+	6, // [6:8] is the sub-list for method output_type
+	4, // [4:6] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_audit_audit_proto_init() }
-func file_audit_audit_proto_init() {
-	if File_audit_audit_proto != nil {
+func init() { file_proto_audit_proto_init() }
+func file_proto_audit_proto_init() {
+	if File_proto_audit_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_audit_audit_proto_rawDesc), len(file_audit_audit_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_audit_proto_rawDesc), len(file_proto_audit_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_audit_audit_proto_goTypes,
-		DependencyIndexes: file_audit_audit_proto_depIdxs,
-		MessageInfos:      file_audit_audit_proto_msgTypes,
+		GoTypes:           file_proto_audit_proto_goTypes,
+		DependencyIndexes: file_proto_audit_proto_depIdxs,
+		MessageInfos:      file_proto_audit_proto_msgTypes,
 	}.Build()
-	File_audit_audit_proto = out.File
-	file_audit_audit_proto_goTypes = nil
-	file_audit_audit_proto_depIdxs = nil
+	File_proto_audit_proto = out.File
+	file_proto_audit_proto_goTypes = nil
+	file_proto_audit_proto_depIdxs = nil
 }

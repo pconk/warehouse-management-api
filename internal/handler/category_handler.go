@@ -28,7 +28,7 @@ func NewCategoryHandler(service service.CategoryServiceInterface, logger *slog.L
 // @Produce json
 // @Success 200 {object} helper.WebResponse{data=[]entity.Category}
 // @Router /categories [get]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	categories, err := h.Service.GetAll(r.Context())
 	if err != nil {
@@ -48,7 +48,7 @@ func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 // @Param id path int true "ID Kategori"
 // @Success 200 {object} helper.WebResponse{data=entity.Category}
 // @Router /categories/{id} [get]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	category, err := h.Service.GetByID(r.Context(), id)
@@ -68,7 +68,7 @@ func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 // @Param category body entity.Category true "Data Kategori"
 // @Success 201 {object} helper.WebResponse{data=entity.Category}
 // @Router /categories [post]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req entity.Category
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -95,7 +95,7 @@ func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Param category body entity.Category true "Data Kategori"
 // @Success 200 {object} helper.WebResponse
 // @Router /categories/{id} [put]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	var req entity.Category
@@ -122,7 +122,7 @@ func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 // @Param id path int true "ID Kategori"
 // @Success 200 {object} helper.WebResponse
 // @Router /categories/{id} [delete]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *CategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 

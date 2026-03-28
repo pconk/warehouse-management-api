@@ -142,9 +142,12 @@ info:
     url: http://www.swagger.io
   description: |-
     API untuk manajemen stok gudang.
-    Testing Keys:
-    - Admin: `secret-admin-key` (Full Access)
-    - Staff: `secret-staff-key` (Read & Update Only)
+
+    ## Cara Mendapatkan Token JWT untuk Testing:
+    1. Pastikan **Auth Service** berjalan (Port 8081).
+    2. Lakukan login melalui endpoint POST `http://localhost:8081/auth/login`.
+    3. Copy string token dari response JSON.
+    4. Klik tombol **Authorize** di kanan atas, lalu masukkan format: `Bearer [token_kamu]`.
   license:
     name: Apache 2.0
     url: http://www.apache.org
@@ -170,7 +173,7 @@ paths:
                   type: array
               type: object
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Ambil semua kategori
       tags:
       - categories
@@ -198,7 +201,7 @@ paths:
                   $ref: '#/definitions/entity.Category'
               type: object
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Buat kategori baru
       tags:
       - admin
@@ -219,7 +222,7 @@ paths:
           schema:
             $ref: '#/definitions/helper.WebResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Hapus kategori
       tags:
       - admin
@@ -244,7 +247,7 @@ paths:
                   $ref: '#/definitions/entity.Category'
               type: object
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Ambil detail kategori
       tags:
       - categories
@@ -272,7 +275,7 @@ paths:
           schema:
             $ref: '#/definitions/helper.WebResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Update kategori
       tags:
       - admin
@@ -328,7 +331,7 @@ paths:
                   type: array
               type: object
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Ambil semua barang
       tags:
       - items
@@ -347,7 +350,7 @@ paths:
           schema:
             $ref: '#/definitions/helper.WebResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Soft delete barang
       tags:
       - admin
@@ -372,7 +375,7 @@ paths:
                   $ref: '#/definitions/entity.Item'
               type: object
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Ambil barang detail
       tags:
       - items
@@ -400,7 +403,7 @@ paths:
           schema:
             $ref: '#/definitions/helper.WebResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Update metadata barang
       tags:
       - admin
@@ -432,7 +435,7 @@ paths:
           schema:
             $ref: '#/definitions/helper.WebResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Tambah barang baru
       tags:
       - items
@@ -452,7 +455,7 @@ paths:
           schema:
             $ref: '#/definitions/helper.WebResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Export data barang ke CSV
       tags:
       - items
@@ -496,7 +499,7 @@ paths:
                   type: array
               type: object
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Ambil riwayat stok
       tags:
       - items
@@ -520,15 +523,15 @@ paths:
           schema:
             $ref: '#/definitions/helper.WebResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Update stok barang
       tags:
       - admin
 securityDefinitions:
-  ApiKeyAuth:
-    description: 'Masukkan API Key kamu. Format: [your-api-key]'
+  BearerAuth:
+    description: 'Masukkan token JWT dengan format: Bearer [your-token]'
     in: header
-    name: X-API-KEY
+    name: Authorization
     type: apiKey
 swagger: "2.0"
 tags:

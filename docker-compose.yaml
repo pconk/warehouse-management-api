@@ -1,7 +1,7 @@
 services:
   db:
     image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
+    # command: --default-authentication-plugin=mysql_native_password
     container_name: warehouse-db
     restart: always
     environment:

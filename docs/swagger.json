@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API untuk manajemen stok gudang.\nTesting Keys:\n- Admin: `secret-admin-key` (Full Access)\n- Staff: `secret-staff-key` (Read \u0026 Update Only)",
+        "description": "API untuk manajemen stok gudang.\n\n## Cara Mendapatkan Token JWT untuk Testing:\n1. Pastikan **Auth Service** berjalan (Port 8081).\n2. Lakukan login melalui endpoint POST `http://localhost:8081/auth/login`.\n3. Copy string token dari response JSON.\n4. Klik tombol **Authorize** di kanan atas, lalu masukkan format: `Bearer [token_kamu]`.",
         "title": "Warehouse Management API",
         "termsOfService": "http://swagger.io",
         "contact": {
@@ -22,7 +22,7 @@
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil daftar semua kategori",
@@ -60,7 +60,7 @@
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Menambahkan kategori baru (Khusus Admin)",
@@ -111,7 +111,7 @@
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil data kategori berdasarkan ID",
@@ -155,7 +155,7 @@
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengubah data kategori (Khusus Admin)",
@@ -199,7 +199,7 @@
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Menghapus kategori permanen (Khusus Admin)",
@@ -253,7 +253,7 @@
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil daftar barang dengan fitur paging dan filter",
@@ -324,7 +324,7 @@
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Contoh data JSON:\n`{\"category_id\":1,\"sku\":\"ELC-MON-003\",\"name\":\"Dell UltraSharp 27-inch\",\"price\":8500000.00,\"stock\":5}`\n\n**Note:** Pastikan SKU belum terdaftar di sistem.",
@@ -369,7 +369,7 @@
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengunduh seluruh daftar barang (yang belum dihapus) dalam format file .csv",
@@ -400,7 +400,7 @@
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil log aktivitas stok (IN/OUT) dengan filter item dan tipe",
@@ -472,7 +472,7 @@
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Menambah (IN) atau mengurangi (OUT) stok dengan audit log",
@@ -511,7 +511,7 @@
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil detail satu barang berdasarkan ID",
@@ -555,7 +555,7 @@
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengubah Nama, Harga, atau Kategori (SKU \u0026 Stok terkunci)",
@@ -599,7 +599,7 @@
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Menghapus barang secara logis (data tetap di DB)",
@@ -827,10 +827,10 @@
         }
     },
     "securityDefinitions": {
-        "ApiKeyAuth": {
-            "description": "Masukkan API Key kamu. Format: [your-api-key]",
+        "BearerAuth": {
+            "description": "Masukkan token JWT dengan format: Bearer [your-token]",
             "type": "apiKey",
-            "name": "X-API-KEY",
+            "name": "Authorization",
             "in": "header"
         }
     },

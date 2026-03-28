@@ -29,9 +29,12 @@ import (
 // @title Warehouse Management API
 // @version 1.0
 // @description API untuk manajemen stok gudang.
-// @description Testing Keys:
-// @description - Admin: `secret-admin-key` (Full Access)
-// @description - Staff: `secret-staff-key` (Read & Update Only)
+// @description
+// @description ## Cara Mendapatkan Token JWT untuk Testing:
+// @description 1. Pastikan **Auth Service** berjalan (Port 8081).
+// @description 2. Lakukan login melalui endpoint POST `http://localhost:8081/auth/login`.
+// @description 3. Copy string token dari response JSON.
+// @description 4. Klik tombol **Authorize** di kanan atas, lalu masukkan format: `Bearer [token_kamu]`.
 // @tag.name admin
 // @tag.description Endpoint internal yang memerlukan hak akses Administrator
 // @tag.name categories
@@ -52,10 +55,10 @@ import (
 
 // @host localhost:8080
 // @BasePath /
-// @securityDefinitions.apikey ApiKeyAuth
+// @securityDefinitions.apikey BearerAuth
 // @in header
-// @name X-API-KEY
-// @description Masukkan API Key kamu. Format: [your-api-key]
+// @name Authorization
+// @description Masukkan token JWT dengan format: Bearer [your-token]
 func main() {
 	// Setup JSON Logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -90,12 +93,11 @@ func main() {
 		logger.Error("Failed to connect to Audit Service", "error", err)
 		// Pertimbangkan untuk os.Exit(1) di sini jika koneksi ke audit service wajib
 	}
-	auditClient := service.NewAuditClient(conn, cfg.JWTSecret, logger)
+	auditClient := service.NewAuditClient(conn, logger)
 
 	// Init Repository
 	healthRepo := repository.NewHealthRepository(db)
 	itemRepo := repository.NewItemRepository(db)
-	userRepo := repository.NewUserRepository(db)
 	catRepo := repository.NewCategoryRepository(db)
 
 	// Init service
@@ -108,7 +110,7 @@ func main() {
 	catHandler := handler.NewCategoryHandler(categoryService, logger)
 
 	// Inisialisasi Middleware dengan API Key dari .env
-	auth := middleware.AuthMiddleware(userRepo, logger)
+	auth := middleware.AuthMiddleware(logger, cfg.JWTSecret)
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// 1. Setup Router Chi
 	r := chi.NewRouter()

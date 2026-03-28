@@ -35,7 +35,7 @@ func (m *MockItemRepo) Update(id int, item entity.UpdateItemRequest) error {
 	return m.Called(id, item).Error(0)
 }
 
-func (m *MockItemRepo) UpdateStock(req entity.UpdateStockRequest, userID int) error {
+func (m *MockItemRepo) UpdateStock(req entity.UpdateStockRequest, userID int64) error {
 	return m.Called(req, userID).Error(0)
 }
 

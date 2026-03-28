@@ -41,7 +41,7 @@ func NewItemHandler(service service.ItemServiceInterface, logger *slog.Logger) *
 // @Param id path int true "ID Barang"
 // @Success 200 {object} helper.WebResponse{data=entity.Item}
 // @Router /items/{id} [get]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *ItemHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id == 0 {
@@ -78,7 +78,7 @@ func (h *ItemHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 // @Param category_id query int false "Filter kategori ID"
 // @Success 200 {object} helper.WebResponsePaging{data=[]entity.Item}
 // @Router /items [get]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *ItemHandler) GetAllItem(w http.ResponseWriter, r *http.Request) {
 
 	limit, offset, page := helper.GetPaginationParams(r)
@@ -128,7 +128,7 @@ func (h *ItemHandler) GetAllItem(w http.ResponseWriter, r *http.Request) {
 // @Success 201 {object} helper.WebResponse
 // @Failure 400 {object} helper.WebResponse
 // @Router /items/create [post]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var newItem entity.Item
 
@@ -175,7 +175,7 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Param item body entity.UpdateItemRequest true "Data update"
 // @Success 200 {object} helper.WebResponse
 // @Router /items/{id} [put]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *ItemHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id == 0 {
@@ -220,11 +220,8 @@ func (h *ItemHandler) Update(w http.ResponseWriter, r *http.Request) {
 // @Param req body entity.UpdateStockRequest true "Request update stok"
 // @Success 200 {object} helper.WebResponse
 // @Router /items/update-stock [post]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
-	// Ambil user menggunakan helper function yang sudah kita buat
-	user := middleware.GetUser(r.Context())
-
 	var updateRequest entity.UpdateStockRequest
 
 	// 2. Decode JSON dari Request Body ke Struct
@@ -243,8 +240,12 @@ func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ambil user menggunakan helper function yang sudah kita buat
+	user := middleware.GetUser(r.Context())
+	token := middleware.GetToken(r.Context())
+
 	// Panggil Service (Logic ada di dalam sini)
-	err := h.Service.UpdateStock(r.Context(), updateRequest, user)
+	err := h.Service.UpdateStock(r.Context(), updateRequest, user, token)
 	if err != nil {
 		h.Logger.Error("Update stock failed", "error", err.Error(), "request_id", middleware.GetRequestID(r.Context()))
 
@@ -267,7 +268,7 @@ func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 // @Param id path int true "ID Barang"
 // @Success 200 {object} helper.WebResponse
 // @Router /items/{id} [delete]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *ItemHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id == 0 {
@@ -297,7 +298,7 @@ func (h *ItemHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {file} file "items_export.csv"
 // @Failure 500 {object} helper.WebResponse
 // @Router /items/export [get]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *ItemHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	items, err := h.Service.GetAllForExport(r.Context())
 	if err != nil {
@@ -342,7 +343,7 @@ func (h *ItemHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 // @Param type query string false "Filter tipe log (IN/OUT)" Enums(IN, OUT)
 // @Success 200 {object} helper.WebResponsePaging{data=[]entity.StockLog}
 // @Router /items/stock-logs [get]
-// @Security ApiKeyAuth
+// @Security BearerAuth
 func (h *ItemHandler) GetStockLogs(w http.ResponseWriter, r *http.Request) {
 	limit, offset, page := helper.GetPaginationParams(r)
 

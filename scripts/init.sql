@@ -29,36 +29,22 @@ CREATE TABLE items (
     CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
--- 4. Table Users
-CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    api_key VARCHAR(100) UNIQUE NOT NULL,
-    role ENUM('admin', 'staff') DEFAULT 'staff',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 5. Table Stock Logs
+-- 4. Table Stock Logs
 CREATE TABLE stock_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     item_id INT,
-    user_id INT,
+    user_id INT, -- Referensi ID dari Auth Service
     type ENUM('IN', 'OUT') NOT NULL,
     quantity INT NOT NULL,
     reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_item FOREIGN KEY (item_id) REFERENCES items(id),
-    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
+    CONSTRAINT fk_item FOREIGN KEY (item_id) REFERENCES items(id)
 );
 
--- 6. Seed Initial Data (Data Awal)
+-- 5. Seed Initial Data (Data Awal)
 INSERT INTO categories (name, description) VALUES 
 ('Elektronik', 'Gadget dan peralatan elektronik'),
 ('Alat Kantor', 'Perlengkapan tulis dan mebel kantor');
-
-INSERT INTO users (username, api_key, role) VALUES 
-('admin_gudang', 'secret-admin-key', 'admin'),
-('staff_gudang', 'secret-staff-key', 'staff');
 
 INSERT INTO items (category_id, sku, name, price, stock) VALUES 
 (1, 'MAC-001', 'Macbook Pro M2 14-inch', 28000000.00, 10),

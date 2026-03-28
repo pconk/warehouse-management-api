@@ -1,8 +1,7 @@
 package entity
 
 type User struct {
-	ID       int    `json:"id"`
+	ID       int64  `json:"user_id"`
 	Username string `json:"username"`
-	ApiKey   string `json:"api_key"`
 	Role     string `json:"type" validate:"required,oneof=admin staff"`
 }

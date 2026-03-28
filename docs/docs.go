@@ -28,7 +28,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil daftar semua kategori",
@@ -66,7 +66,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Menambahkan kategori baru (Khusus Admin)",
@@ -117,7 +117,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil data kategori berdasarkan ID",
@@ -161,7 +161,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengubah data kategori (Khusus Admin)",
@@ -205,7 +205,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Menghapus kategori permanen (Khusus Admin)",
@@ -259,7 +259,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil daftar barang dengan fitur paging dan filter",
@@ -330,7 +330,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Contoh data JSON:\n` + "`" + `{\"category_id\":1,\"sku\":\"ELC-MON-003\",\"name\":\"Dell UltraSharp 27-inch\",\"price\":8500000.00,\"stock\":5}` + "`" + `\n\n**Note:** Pastikan SKU belum terdaftar di sistem.",
@@ -375,7 +375,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengunduh seluruh daftar barang (yang belum dihapus) dalam format file .csv",
@@ -406,7 +406,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil log aktivitas stok (IN/OUT) dengan filter item dan tipe",
@@ -478,7 +478,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Menambah (IN) atau mengurangi (OUT) stok dengan audit log",
@@ -517,7 +517,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengambil detail satu barang berdasarkan ID",
@@ -561,7 +561,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Mengubah Nama, Harga, atau Kategori (SKU \u0026 Stok terkunci)",
@@ -605,7 +605,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Menghapus barang secara logis (data tetap di DB)",
@@ -833,10 +833,10 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "ApiKeyAuth": {
-            "description": "Masukkan API Key kamu. Format: [your-api-key]",
+        "BearerAuth": {
+            "description": "Masukkan token JWT dengan format: Bearer [your-token]",
             "type": "apiKey",
-            "name": "X-API-KEY",
+            "name": "Authorization",
             "in": "header"
         }
     },
@@ -867,7 +867,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Warehouse Management API",
-	Description:      "API untuk manajemen stok gudang.\nTesting Keys:\n- Admin: `secret-admin-key` (Full Access)\n- Staff: `secret-staff-key` (Read & Update Only)",
+	Description:      "API untuk manajemen stok gudang.\n\n## Cara Mendapatkan Token JWT untuk Testing:\n1. Pastikan **Auth Service** berjalan (Port 8081).\n2. Lakukan login melalui endpoint POST `http://localhost:8081/auth/login`.\n3. Copy string token dari response JSON.\n4. Klik tombol **Authorize** di kanan atas, lalu masukkan format: `Bearer [token_kamu]`.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

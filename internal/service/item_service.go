@@ -15,7 +15,7 @@ import (
 )
 
 type ItemServiceInterface interface {
-	UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User) error
+	UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User, token string) error
 	GetAll(ctx context.Context, limit, offset int, filterName string, filterCatID int) ([]entity.Item, int64, error)
 	GetAllForExport(ctx context.Context) ([]entity.Item, error)
 	GetByID(ctx context.Context, id int) (*entity.Item, error)
@@ -37,7 +37,7 @@ func NewItemService(r repository.ItemRepositoryInterface, p queue.EmailProducerI
 	return &itemService{repo: r, producer: p, audit: a, logger: l, cfg: c}
 }
 
-func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User) error {
+func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User, token string) error {
 	// 1. Ambil data stok SEBELUM update
 	// Kita butuh data item (Name, SKU, OldStock) baik untuk Alert maupun Audit
 	oldItem, err := s.repo.FindByID(req.ItemID)
@@ -61,6 +61,7 @@ func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockReq
 
 	// 4. Kirim Audit Log (Async via Goroutine di dalam Client Wrapper)
 	s.audit.LogActivity(&pbAudit.AuditRequest{
+		UserId:          user.ID,
 		Username:        user.Username,
 		Role:            user.Role,
 		WarehouseId:     s.cfg.WarehouseID,
@@ -74,7 +75,7 @@ func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockReq
 			"source":     "warehouse-api",
 			"request_id": middleware.GetRequestID(ctx),
 		},
-	})
+	}, token)
 
 	// 5. Business Logic: Cek stok untuk notifikasi
 	if s.cfg.EnableLowStockAlert && oldItem != nil {
