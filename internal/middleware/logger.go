@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -11,7 +12,34 @@ import (
 
 type contextKey string
 
-const RequestIDKey authContextKey = "requestID"
+const (
+	LogFieldsKey contextKey     = "log_fields"
+	RequestIDKey authContextKey = "requestID"
+)
+
+// AddLogFields memungkinkan middleware lain menambahkan field ke log utama
+func AddLogFields(ctx context.Context, fields ...slog.Attr) {
+	if v, ok := ctx.Value(LogFieldsKey).(*[]slog.Attr); ok {
+		*v = append(*v, fields...)
+	}
+}
+
+func AddUserToLog(ctx context.Context, userID int64, username, role string) {
+	AddLogFields(ctx,
+		slog.String("user_id", fmt.Sprintf("%d", userID)),
+		slog.String("username", username),
+		slog.String("role", role))
+}
+
+// CreateTraceGroup menggabungkan request_id dan field tambahan ke dalam satu grup log trace
+func CreateTraceGroup(requestID string, extraFields []slog.Attr) slog.Attr {
+	traceAttrs := make([]any, 0, len(extraFields)+1)
+	traceAttrs = append(traceAttrs, slog.String("request_id", requestID))
+	for _, attr := range extraFields {
+		traceAttrs = append(traceAttrs, attr)
+	}
+	return slog.Group("trace", traceAttrs...)
+}
 
 // GetRequestID adalah helper untuk mengambil ID di dalam Handler
 func GetRequestID(ctx context.Context) string {
@@ -19,6 +47,11 @@ func GetRequestID(ctx context.Context) string {
 		return id
 	}
 	return "unknown"
+}
+
+// DurationToMs mengonversi time.Duration menjadi float64 milidetik
+func DurationToMs(d time.Duration) float64 {
+	return float64(d.Nanoseconds()) / 1e6
 }
 
 // responseWriter wrapper untuk menangkap status code
@@ -46,6 +79,9 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			// 3. Masukkan Request ID ke Context agar bisa dipakai di Handler/DB
 			ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
 
+			var extraFields []slog.Attr
+			ctx = context.WithValue(ctx, LogFieldsKey, &extraFields)
+
 			// 4. Wrap ResponseWriter
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
@@ -61,28 +97,23 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			}
 
 			// Gunakan variabel default
-			userID := wrapped.Header().Get("X-Internal-User-ID")
-			username := wrapped.Header().Get("X-Internal-Username")
-			role := wrapped.Header().Get("X-Internal-Role")
+			// userID := wrapped.Header().Get("X-Internal-User-ID")
+			// username := wrapped.Header().Get("X-Internal-Username")
+			// role := wrapped.Header().Get("X-Internal-Role")
 
-			wrapped.Header().Del("X-Internal-User-ID")
-			wrapped.Header().Del("X-Internal-Username")
-			wrapped.Header().Del("X-Internal-Role")
+			// wrapped.Header().Del("X-Internal-User-ID")
+			// wrapped.Header().Del("X-Internal-Username")
+			// wrapped.Header().Del("X-Internal-Role")
 
-			// Log dengan struktur yang rapi (Nesting)
+			// 6. Log Terstruktur dengan slog + Request ID (Menggunakan AddLogFields dari middleware Auth)
 			logger.LogAttrs(r.Context(), level, "HTTP Request",
-				slog.Group("trace",
-					slog.String("request_id", requestID),
-					slog.String("user_id", userID),
-					slog.String("username", username),
-					slog.String("role", role),
-				),
+				CreateTraceGroup(requestID, extraFields),
 				slog.Group("http",
 					slog.String("method", r.Method),
 					slog.String("path", r.URL.Path),
 					slog.Int("status", wrapped.statusCode),
 					slog.String("ip", r.RemoteAddr),
-					slog.Duration("duration", time.Since(start)),
+					slog.Float64("duration_ms", DurationToMs(time.Since(start))),
 				),
 			)
 

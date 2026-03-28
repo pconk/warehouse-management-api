@@ -205,10 +205,9 @@ func (r *ItemRepository) Delete(id int) error {
 func (r *ItemRepository) GetStockLogs(limit, offset int, itemID int, logType string) ([]entity.StockLog, int64, error) {
 	// 1. Query Data dengan Join
 	query := `
-		SELECT sl.id, sl.item_id, i.name, i.sku, sl.type, sl.quantity, sl.reason, sl.created_at, u.username
+		SELECT sl.id, sl.item_id, sl.user_id, i.name, i.sku, sl.type, sl.quantity, sl.reason, sl.created_at
 	FROM stock_logs sl
-		INNER JOIN items i ON sl.item_id = i.id
-		LEFT JOIN users u ON sl.user_id = u.id
+		INNER JOIN items i ON sl.item_id = i.id		
 		WHERE 1=1`
 	var args []interface{}
 	if itemID > 0 {
@@ -233,7 +232,7 @@ func (r *ItemRepository) GetStockLogs(limit, offset int, itemID int, logType str
 	for rows.Next() {
 		var l entity.StockLog
 
-		if err := rows.Scan(&l.ID, &l.ItemID, &l.ItemName, &l.ItemSKU, &l.Type, &l.Quantity, &l.Reason, &l.CreatedAt, &l.UserName); err != nil {
+		if err := rows.Scan(&l.ID, &l.ItemID, &l.UserID, &l.ItemName, &l.ItemSKU, &l.Type, &l.Quantity, &l.Reason, &l.CreatedAt); err != nil {
 			return nil, 0, err
 		}
 		logs = append(logs, l)

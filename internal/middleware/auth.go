@@ -90,13 +90,16 @@ func AuthMiddleware(logger *slog.Logger, jwtSecret string) func(http.Handler) ht
 				Username: usernameClaim,
 				Role:     roleClaim,
 			}
-			w.Header().Set("X-Internal-User-ID", fmt.Sprintf("%d", userID))
-			w.Header().Set("X-Internal-Username", usernameClaim)
-			w.Header().Set("X-Internal-Role", roleClaim)
+
+			// w.Header().Set("X-Internal-User-ID", fmt.Sprintf("%d", userID))
+			// w.Header().Set("X-Internal-Username", usernameClaim)
+			// w.Header().Set("X-Internal-Role", roleClaim)
 
 			// 4. Simpan User dan Token mentah ke Context
 			ctx := context.WithValue(r.Context(), UserKey, user)
 			ctx = context.WithValue(ctx, TokenKey, tokenString)
+
+			AddUserToLog(ctx, user.ID, user.Username, user.Role) // Injeksi ke log trace group
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

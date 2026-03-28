@@ -11,6 +11,6 @@ type StockLog struct {
 	Quantity  int       `json:"quantity"`
 	Reason    string    `json:"reason"`
 	CreatedAt time.Time `json:"created_at"`
-	UserID    int       `json:"user_id,omitempty"`
+	UserID    int64     `json:"user_id,omitempty"`
 	UserName  *string   `json:"user_name,omitempty"`
 }

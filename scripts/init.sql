@@ -33,7 +33,7 @@ CREATE TABLE items (
 CREATE TABLE stock_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     item_id INT,
-    user_id INT, -- Referensi ID dari Auth Service
+    user_id BIGINT, -- Referensi ID dari Auth Service (int64)
     type ENUM('IN', 'OUT') NOT NULL,
     quantity INT NOT NULL,
     reason TEXT,

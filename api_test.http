@@ -64,7 +64,7 @@ Authorization: Bearer {{token}}
 
 # Cari barang spesifik (Misal: MacBook Pro M2)
 # Sesuaikan ID 1 sesuai hasil insert di DB
-GET {{baseUrl}}/items/11
+GET {{baseUrl}}/items/1
 Authorization: Bearer {{token}}
 
 ###
@@ -109,7 +109,7 @@ Authorization: Bearer {{token}}
 
 # Lihat riwayat keluar/masuk barang tertentu (Item ID: 2)
 # GET {{baseUrl}}/items/stock-logs?page=1&limit=10&item_id=1&type=IN
-GET {{baseUrl}}/items/stock-logs?page=1&limit=10&item_id=1
+GET {{baseUrl}}/items/stock-logs?page=1&limit=10
 Authorization: Bearer {{token}}
 
 ###
