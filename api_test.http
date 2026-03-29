@@ -1,8 +1,11 @@
 ### Variabel Global
 @baseUrl = http://localhost:8080
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ3NzIxNTYsImlzcyI6ImF1ZGl0LXNlcnZpY2UtdGVzdCIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOiIxIiwidXNlcm5hbWUiOiJhZG1pbl9ndWRhbmciLCJ3YXJlaG91c2VfaWQiOiJXSC1KS1QtMDk5In0.4xsVcbm5vnvNLb45_Z1e2xQZFnwry053IkM1QTEVmJA
-# @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ3NzIxNTYsImlzcyI6ImF1ZGl0LXNlcnZpY2UtdGVzdCIsInJvbGUiOiJzdGFmZiIsInVzZXJfaWQiOiIyIiwidXNlcm5hbWUiOiJzdGFmZl9idWRpIiwid2FyZWhvdXNlX2lkIjoiV0gtSktULTA5OSJ9.0um17em2mrYmBF_O_l9P6AaO3S8FKYJ1SfBv1FTnh9M
+#admin
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ4NzIxNTYsImlzcyI6ImF1ZGl0LXNlcnZpY2UtdGVzdCIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOiIxIiwidXNlcm5hbWUiOiJhZG1pbl9ndWRhbmciLCJ3YXJlaG91c2VfaWQiOiJXSC1KS1QtMDk5In0.J2M_tRQPCUi_AGJrWZJwTxNUxNh_HJD-pKLRONOtp14
+#staff
+# @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ4NzIxNTYsImlzcyI6ImF1ZGl0LXNlcnZpY2UtdGVzdCIsInJvbGUiOiJzdGFmZiIsInVzZXJfaWQiOiIyIiwidXNlcm5hbWUiOiJzdGFmZl9idWRpIiwid2FyZWhvdXNlX2lkIjoiV0gtSktULTA5OSJ9.yr7sjfbWhJ00qeVncJnknxEyEI7Z_OZCFGIV2yIyzBE
 @contentType = application/json
+@requestID = Test02
 
 ### ==========================================
 ### 1. KATEGORI (CATEGORIES)
@@ -11,12 +14,14 @@
 # Ambil semua kategori (Electronics, Furniture, Stationery)
 GET {{baseUrl}}/categories
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 ###
 
 # Ambil kategori per ID
 GET {{baseUrl}}/categories/2
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 ###
 
@@ -24,6 +29,7 @@ Authorization: Bearer {{token}}
 POST {{baseUrl}}/categories
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 {
     "name": "Printer",
@@ -36,6 +42,7 @@ Authorization: Bearer {{token}}
 PUT {{baseUrl}}/categories/5
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 {
     "name": "Printer2",
@@ -48,6 +55,7 @@ Authorization: Bearer {{token}}
 DELETE  {{baseUrl}}/categories/5
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 ###
 
@@ -59,6 +67,7 @@ Authorization: Bearer {{token}}
 # GET {{baseUrl}}/items?page=1&limit=10&name=lo&category=1
 GET {{baseUrl}}/items?page=1&limit=10&category_id=1
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 ###
 
@@ -66,12 +75,14 @@ Authorization: Bearer {{token}}
 # Sesuaikan ID 1 sesuai hasil insert di DB
 GET {{baseUrl}}/items/1
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 ###
 
 # Export csv, semua daftar barang beserta stoknya
 GET {{baseUrl}}/items/export
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 ###
 
@@ -79,6 +90,7 @@ Authorization: Bearer {{token}}
 POST {{baseUrl}}/items/create
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 {
     "category_id": 1,
@@ -94,6 +106,7 @@ Authorization: Bearer {{token}}
 PUT {{baseUrl}}/items/11
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 {
     "category_id": 1,    
@@ -111,6 +124,7 @@ Authorization: Bearer {{token}}
 # GET {{baseUrl}}/items/stock-logs?page=1&limit=10&item_id=1&type=IN
 GET {{baseUrl}}/items/stock-logs?page=1&limit=10
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 ###
 
@@ -121,6 +135,7 @@ Authorization: Bearer {{token}}
 POST {{baseUrl}}/items/update-stock
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 {
     "item_id": 4,
@@ -135,6 +150,7 @@ Authorization: Bearer {{token}}
 DELETE  {{baseUrl}}/items/2
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+X-Request-Id: {{requestID}}
 
 ###
 

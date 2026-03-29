@@ -11,8 +11,8 @@ type MockItemService struct {
 	mock.Mock
 }
 
-func (m *MockItemService) UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User, token string) error {
-	args := m.Called(ctx, req, user, token)
+func (m *MockItemService) UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User) error {
+	args := m.Called(ctx, req, user)
 	return args.Error(0)
 }
 

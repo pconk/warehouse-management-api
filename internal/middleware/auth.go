@@ -35,6 +35,10 @@ func GetToken(ctx context.Context) string {
 	return token
 }
 
+func WithToken(ctx context.Context, token string) context.Context {
+	return context.WithValue(ctx, TokenKey, token)
+}
+
 func AuthMiddleware(logger *slog.Logger, jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -91,15 +95,11 @@ func AuthMiddleware(logger *slog.Logger, jwtSecret string) func(http.Handler) ht
 				Role:     roleClaim,
 			}
 
-			// w.Header().Set("X-Internal-User-ID", fmt.Sprintf("%d", userID))
-			// w.Header().Set("X-Internal-Username", usernameClaim)
-			// w.Header().Set("X-Internal-Role", roleClaim)
-
 			// 4. Simpan User dan Token mentah ke Context
 			ctx := context.WithValue(r.Context(), UserKey, user)
-			ctx = context.WithValue(ctx, TokenKey, tokenString)
+			ctx = WithToken(ctx, tokenString)
 
-			AddUserToLog(ctx, user.ID, user.Username, user.Role) // Injeksi ke log trace group
+			AddUserToLog(ctx, user.ID, user.Username, user.Role)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

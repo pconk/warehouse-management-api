@@ -7,14 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 type contextKey string
 
 const (
-	LogFieldsKey contextKey     = "log_fields"
-	RequestIDKey authContextKey = "requestID"
+	LogFieldsKey contextKey = "log_fields"
+	RequestIDKey contextKey = "request_id"
 )
 
 // AddLogFields memungkinkan middleware lain menambahkan field ke log utama
@@ -41,12 +41,19 @@ func CreateTraceGroup(requestID string, extraFields []slog.Attr) slog.Attr {
 	return slog.Group("trace", traceAttrs...)
 }
 
+// WithRequestID menyuntikkan request ID ke dalam context secara manual
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, RequestIDKey, requestID)
+}
+
 // GetRequestID adalah helper untuk mengambil ID di dalam Handler
 func GetRequestID(ctx context.Context) string {
+	// Cek apakah ada di key internal kita (untuk context asinkron)
 	if id, ok := ctx.Value(RequestIDKey).(string); ok {
 		return id
 	}
-	return "unknown"
+	// Fallback ke chi middleware (untuk context request HTTP)
+	return chimiddleware.GetReqID(ctx)
 }
 
 // DurationToMs mengonversi time.Duration menjadi float64 milidetik
@@ -70,17 +77,11 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			// 1. Generate Request ID (Correlation ID)
-			requestID := uuid.New().String()
-
-			// 2. Masukkan Request ID ke Header Response (opsional, untuk debug client)
-			w.Header().Set("X-Request-ID", requestID)
-
-			// 3. Masukkan Request ID ke Context agar bisa dipakai di Handler/DB
-			ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
+			// 1. Ambil Request ID yang sudah digenerate oleh chi.middleware.RequestID
+			requestID := GetRequestID(r.Context())
 
 			var extraFields []slog.Attr
-			ctx = context.WithValue(ctx, LogFieldsKey, &extraFields)
+			ctx := context.WithValue(r.Context(), LogFieldsKey, &extraFields)
 
 			// 4. Wrap ResponseWriter
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
@@ -95,15 +96,6 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			} else if wrapped.statusCode >= 500 {
 				level = slog.LevelError
 			}
-
-			// Gunakan variabel default
-			// userID := wrapped.Header().Get("X-Internal-User-ID")
-			// username := wrapped.Header().Get("X-Internal-Username")
-			// role := wrapped.Header().Get("X-Internal-Role")
-
-			// wrapped.Header().Del("X-Internal-User-ID")
-			// wrapped.Header().Del("X-Internal-Username")
-			// wrapped.Header().Del("X-Internal-Role")
 
 			// 6. Log Terstruktur dengan slog + Request ID (Menggunakan AddLogFields dari middleware Auth)
 			logger.LogAttrs(r.Context(), level, "HTTP Request",

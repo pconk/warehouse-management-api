@@ -24,7 +24,25 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
+
+// ForwardRequestIDInterceptor otomatis meneruskan request_id dari Chi ke gRPC Metadata
+func ForwardRequestIDInterceptor() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		reqID := middleware.GetRequestID(ctx)
+		if reqID != "" {
+			ctx = metadata.AppendToOutgoingContext(ctx, "x-request-id", reqID)
+		}
+
+		// Ambil token dari context (disuntikkan oleh AuthMiddleware)
+		if token := middleware.GetToken(ctx); token != "" {
+			ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token)
+		}
+
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
 
 // @title Warehouse Management API
 // @version 1.0
@@ -88,7 +106,11 @@ func main() {
 	emailProducer := queue.NewEmailProducer(rdb, cfg.QueueName)
 
 	// Init Audit Service Client (gRPC)
-	conn, err := grpc.NewClient(cfg.AuditServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(
+		cfg.AuditServiceURL,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(ForwardRequestIDInterceptor()),
+	)
 	if err != nil {
 		logger.Error("Failed to connect to Audit Service", "error", err)
 		// Pertimbangkan untuk os.Exit(1) di sini jika koneksi ke audit service wajib
@@ -115,6 +137,7 @@ func main() {
 	// 1. Setup Router Chi
 	r := chi.NewRouter()
 
+	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.RealIP)
 

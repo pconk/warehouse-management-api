@@ -23,8 +23,8 @@ type MockAuditClient struct {
 	mock.Mock
 }
 
-func (m *MockAuditClient) LogActivity(req *audit.AuditRequest, token string) {
-	m.Called(req, token)
+func (m *MockAuditClient) LogActivity(ctx context.Context, req *audit.AuditRequest) {
+	m.Called(ctx, req)
 }
 
 // --- SETUP HELPER ---
@@ -211,10 +211,10 @@ func TestItemService_UpdateStock_Logic(t *testing.T) {
 			}
 
 			// 5. Mock Audit (Expect LogActivity called)
-			mockAudit.On("LogActivity", mock.Anything, "dummy-token").Return().Once()
+			mockAudit.On("LogActivity", mock.Anything, mock.Anything).Return().Once()
 
 			// EXECUTE
-			err := svc.UpdateStock(context.Background(), req, user, "dummy-token")
+			err := svc.UpdateStock(context.Background(), req, user)
 
 			// ASSERT
 			assert.NoError(t, err)

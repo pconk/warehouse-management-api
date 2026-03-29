@@ -242,10 +242,9 @@ func (h *ItemHandler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 
 	// Ambil user menggunakan helper function yang sudah kita buat
 	user := middleware.GetUser(r.Context())
-	token := middleware.GetToken(r.Context())
 
 	// Panggil Service (Logic ada di dalam sini)
-	err := h.Service.UpdateStock(r.Context(), updateRequest, user, token)
+	err := h.Service.UpdateStock(r.Context(), updateRequest, user)
 	if err != nil {
 		h.Logger.Error("Update stock failed", "error", err.Error(), "request_id", middleware.GetRequestID(r.Context()))
 

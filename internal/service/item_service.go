@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 	"warehouse-management-api/internal/config"
 	"warehouse-management-api/internal/entity"
 	"warehouse-management-api/internal/middleware"
@@ -15,7 +16,7 @@ import (
 )
 
 type ItemServiceInterface interface {
-	UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User, token string) error
+	UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User) error
 	GetAll(ctx context.Context, limit, offset int, filterName string, filterCatID int) ([]entity.Item, int64, error)
 	GetAllForExport(ctx context.Context) ([]entity.Item, error)
 	GetByID(ctx context.Context, id int) (*entity.Item, error)
@@ -37,7 +38,7 @@ func NewItemService(r repository.ItemRepositoryInterface, p queue.EmailProducerI
 	return &itemService{repo: r, producer: p, audit: a, logger: l, cfg: c}
 }
 
-func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User, token string) error {
+func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockRequest, user *entity.User) error {
 	// 1. Ambil data stok SEBELUM update
 	// Kita butuh data item (Name, SKU, OldStock) baik untuk Alert maupun Audit
 	oldItem, err := s.repo.FindByID(req.ItemID)
@@ -60,7 +61,7 @@ func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockReq
 	finalStock := oldItem.Stock + qtyChange
 
 	// 4. Kirim Audit Log (Async via Goroutine di dalam Client Wrapper)
-	s.audit.LogActivity(&pbAudit.AuditRequest{
+	s.audit.LogActivity(ctx, &pbAudit.AuditRequest{
 		UserId:          user.ID,
 		Username:        user.Username,
 		Role:            user.Role,
@@ -75,7 +76,7 @@ func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockReq
 			"source":     "warehouse-api",
 			"request_id": middleware.GetRequestID(ctx),
 		},
-	}, token)
+	})
 
 	// 5. Business Logic: Cek stok untuk notifikasi
 	if s.cfg.EnableLowStockAlert && oldItem != nil {
@@ -102,8 +103,12 @@ func (s *itemService) UpdateStock(ctx context.Context, req entity.UpdateStockReq
 					Subject: fmt.Sprintf("LOW STOCK: %s", newItem.Name),
 					Message: fmt.Sprintf("Barang %s tersisa %d unit.", newItem.Name, newItem.Stock),
 				}
-				// fmt.Println("DEBUG: Memanggil Producer")
-				if err := s.producer.PushEmailJob(context.Background(), job); err != nil {
+
+				// Untuk Redis, cukup gunakan background context dengan timeout.
+				// Request ID sudah ada di dalam struct 'job'.
+				ctxPush, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				if err := s.producer.PushEmailJob(ctxPush, job); err != nil {
 					s.logger.Error("Failed to push email job", "error", err)
 				}
 			}(*newItem, middleware.GetRequestID(ctx))
