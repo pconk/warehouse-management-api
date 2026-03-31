@@ -8,7 +8,7 @@ services:
       MYSQL_DATABASE: warehouse_go
       MYSQL_ROOT_PASSWORD: "rootpassword"
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - ./scripts:/docker-entrypoint-initdb.d # Otomatis eksekusi SQL saat startup
     healthcheck:
@@ -16,31 +16,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - warehouse-network
+
   redis:
     image: redis:8-alpine
-    container_name: warehouse_redis
-    ports:
-      - "6379:6379"
+    container_name: warehouse-redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
-    # Data tetap aman meski container dihapus
-    volumes:
-      - redis_data:/data
+    networks:
+      - warehouse-network
 
-  app:
+  warehouse-api:
     build: .
     container_name: warehouse-api
     restart: always
     ports:
       - "8080:8080"
     environment:
-      REDIS_ADDRESS: redis:6379
+      REDIS_ADDRESS: warehouse-redis:6379
       ENABLE_LOW_STOCK_ALERT: "true"
       LOW_STOCK_ALERT_EMAIL: "admin@warehouse.com"
-      AUDIT_SERVICE_URL: "localhost:50051"
+      AUDIT_SERVICE_URL: "audit-service:50052"
       JWT_SECRET: "rahasia-super-aman"
       DB_HOST: db
       DB_PORT: 3306
@@ -53,5 +53,9 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
-volumes:
-  redis_data:
+    networks:
+      - warehouse-network
+
+networks:
+  warehouse-network:
+    external: true

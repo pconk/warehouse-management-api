@@ -1,7 +1,7 @@
 ### Variabel Global
 @baseUrl = http://localhost:8080
 #admin
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ4NzIxNTYsImlzcyI6ImF1ZGl0LXNlcnZpY2UtdGVzdCIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOiIxIiwidXNlcm5hbWUiOiJhZG1pbl9ndWRhbmciLCJ3YXJlaG91c2VfaWQiOiJXSC1KS1QtMDk5In0.J2M_tRQPCUi_AGJrWZJwTxNUxNh_HJD-pKLRONOtp14
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImFkbWluX2d1ZGFuZyIsInJvbGUiOiJhZG1pbiIsImlzcyI6ImF1dGgtc2VydmljZSIsImV4cCI6MTc3NTAxMjI1Nn0.uxI-tSptkhjZfXA_W9Cc9K2YygMWVfFK7uLygdsnuAQ
 #staff
 # @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ4NzIxNTYsImlzcyI6ImF1ZGl0LXNlcnZpY2UtdGVzdCIsInJvbGUiOiJzdGFmZiIsInVzZXJfaWQiOiIyIiwidXNlcm5hbWUiOiJzdGFmZl9idWRpIiwid2FyZWhvdXNlX2lkIjoiV0gtSktULTA5OSJ9.yr7sjfbWhJ00qeVncJnknxEyEI7Z_OZCFGIV2yIyzBE
 @contentType = application/json
@@ -66,7 +66,7 @@ X-Request-Id: {{requestID}}
 # Ambil semua daftar barang beserta stoknya
 # GET {{baseUrl}}/items?page=1&limit=10&name=lo&category=1
 GET {{baseUrl}}/items?page=1&limit=10&category_id=1
-Authorization: Bearer {{token}}
+# Authorization: Bearer {{token}}
 X-Request-Id: {{requestID}}
 
 ###

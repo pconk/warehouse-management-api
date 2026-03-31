@@ -97,7 +97,8 @@ func main() {
 	// Koneksi DB
 	db, err := database.ConnectDB(&cfg.Db)
 	if err != nil {
-		panic(err)
+		logger.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 

@@ -34,6 +34,13 @@ Fitur ini memisahkan beban kerja pencatatan histori transaksi yang berat ke serv
 
 ---
 
+🌐 ***Access Methods***
+Layanan ini dapat diakses melalui dua jalur utama:
+1.  **Direct REST API (Port 8080)**: Digunakan untuk integrasi sistem legacy, ekspor data berat (CSV), atau debugging langsung menggunakan Swagger.
+2.  **GraphQL Gateway (wh-gateway - Port 8082)**: Jalur utama untuk aplikasi Frontend/Mobile. Menyediakan agregasi data otomatis antara Warehouse, Auth, dan Audit Log dalam satu query tunggal.
+
+---
+
 🛠️ ***Tech Stack***
 
 * Language: ***Go (Golang)***
@@ -61,7 +68,7 @@ Project menggunakan pendekatan **Clean Architecture sederhana**.
                │
        [ Transport Layer ]
                ▼
-    ┌──────────────────────┐
+    ┌──────────────────────┐      ┌────────────────────────┐
     │       Handlers       │ ───▶ (Request Validation & Response Mapping)
     └──────────┬───────────┘
                │
@@ -70,9 +77,9 @@ Project menggunakan pendekatan **Clean Architecture sederhana**.
     ┌──────────────────────┐       ┌────────────────────────┐
     │     Service Layer    │ ───┬─▶│ Async Worker (Redis)   │
     │ (Core Business Rules)│    │  │  (Email/Notifications) │
-    └──────────┬───────────┘    │  └────────────────────────┘
+    └──────────┬───────────┘    │  └────────────────────────┘      [ GraphQL Gateway ]
                │                │  ┌────────────────────────┐
-               │                └─▶│  Async Audit Service   │
+               │                └─▶│  Async Audit Service   │ ◀────────────┘
                │                   │    (via gRPC + Proto)  │
                ▼                   └────────────────────────┘
        [ Data Access Layer ]
@@ -204,5 +211,3 @@ Cukup satu perintah untuk menjalankan API, Database, dan Redis:
 ```bash
 docker-compose up --build
 ```
-
-
