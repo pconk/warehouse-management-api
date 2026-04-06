@@ -18,6 +18,7 @@ type DbConfig struct {
 type AppConfig struct {
 	Db                  DbConfig
 	ApiPort             string
+	GrpcPort            string
 	RedisAddress        string
 	WarehouseID         string
 	QueueName           string
@@ -40,6 +41,7 @@ func LoadConfig() (*AppConfig, error) {
 			Name:     getEnv("DB_NAME", "warehouse_db"),
 		},
 		ApiPort:             getEnv("API_PORT", "8080"),
+		GrpcPort:            getEnv("GRPC_PORT", "50053"),
 		RedisAddress:        getEnv("REDIS_ADDRESS", "localhost:6379"),
 		WarehouseID:         getEnv("WAREHOUSE_ID", "WH_001"),
 		QueueName:           getEnv("QUEUE_NAME", "email_jobs"),

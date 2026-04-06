@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package warehouse;
+import "validate/validate.proto"; // Tambahkan import ini
+
+// Opsi Java tetap bisa dipertahankan jika ada client Java yang akan menggunakan ini
+option java_multiple_files = true;
+option java_package = "com.pconk.warehouse.v1";
+option java_outer_classname = "WarehouseProto";
+
+// Tambahkan ini agar Go tahu di mana menyimpan & apa nama package-nya
+option go_package = "warehouse-management-api/internal/pb/warehouse";
+
+service WarehouseService {
+  rpc IncreaseStock (StockUpdateRequest) returns (StockUpdateResponse);
+}
+
+message StockUpdateRequest {
+  repeated StockItem items = 1 [(validate.rules).repeated.min_items = 1]; // Minimal 1 item
+}
+
+message StockItem {
+  int64 item_id = 1 [(validate.rules).int64.gt = 0]; // item_id harus lebih besar dari 0
+  int32 quantity = 2 [(validate.rules).int32.gt = 0]; // quantity harus lebih besar dari 0
+}
+
+message StockUpdateResponse {
+  bool success = 1;
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 	"warehouse-management-api/internal/config"
 	"warehouse-management-api/internal/handler"
 	"warehouse-management-api/internal/middleware"
+	pb_warehouse "warehouse-management-api/internal/pb/warehouse"
 	"warehouse-management-api/internal/queue"
 	"warehouse-management-api/internal/repository"
 	"warehouse-management-api/internal/service"
@@ -25,6 +27,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/reflection"
 )
 
 // ForwardRequestIDInterceptor otomatis meneruskan request_id dari Chi ke gRPC Metadata
@@ -79,7 +82,7 @@ func ForwardRequestIDInterceptor() grpc.UnaryClientInterceptor {
 // @description Masukkan token JWT dengan format: Bearer [your-token]
 func main() {
 	// Setup JSON Logger
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("service", "warehouse-api")
 	slog.SetDefault(logger)
 
 	cfg, err := config.LoadConfig()
@@ -106,8 +109,14 @@ func main() {
 	rdb := redis.NewRedisClient(cfg.RedisAddress)
 	emailProducer := queue.NewEmailProducer(rdb, cfg.QueueName)
 
+	lis, err := net.Listen("tcp", ":"+cfg.GrpcPort)
+	if err != nil {
+		logger.Error("gRpc server failed to listen", "port", cfg.GrpcPort, "error", err)
+		os.Exit(1)
+	}
+
 	// Init Audit Service Client (gRPC)
-	conn, err := grpc.NewClient(
+	auditConn, err := grpc.NewClient(
 		cfg.AuditServiceURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(ForwardRequestIDInterceptor()),
@@ -116,7 +125,7 @@ func main() {
 		logger.Error("Failed to connect to Audit Service", "error", err)
 		// Pertimbangkan untuk os.Exit(1) di sini jika koneksi ke audit service wajib
 	}
-	auditClient := service.NewAuditClient(conn, logger)
+	auditClient := service.NewAuditClient(auditConn, logger)
 
 	// Init Repository
 	healthRepo := repository.NewHealthRepository(db)
@@ -134,7 +143,27 @@ func main() {
 
 	// Inisialisasi Middleware dengan API Key dari .env
 	auth := middleware.AuthMiddleware(logger, cfg.JWTSecret)
+
+	// Init gRPC Handler & Server
+	grpcHandler := handler.NewWarehouseGRPCHandler(itemService, logger)
+
+	// Init gRpc Middleware
+	authInterceptor := middleware.NewAuthInterceptor(cfg)
+	loggerInterceptor := middleware.NewLoggerInterceptor(logger)
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Setup gRpc Server
+	grpcServer := grpc.NewServer(
+		// ChainUnaryInterceptor mengeksekusi urutan dari kiri ke kanan (atau atas ke bawah)
+		grpc.ChainUnaryInterceptor(
+			loggerInterceptor.Unary(), // Log dulu (Start Timer)
+			authInterceptor.Unary(),   // Baru cek Auth
+		),
+	)
+
+	pb_warehouse.RegisterWarehouseServiceServer(grpcServer, grpcHandler)
+
+	reflection.Register(grpcServer)
+
 	// 1. Setup Router Chi
 	r := chi.NewRouter()
 
@@ -193,6 +222,14 @@ func main() {
 		}
 	}()
 
+	// Jalankan gRPC Server di Goroutine
+	go func() {
+		logger.Info("gRPC Server started", "port", cfg.GrpcPort)
+		if err := grpcServer.Serve(lis); err != nil {
+			logger.Error("gRPC Server crash", "error", err)
+		}
+	}()
+
 	// 4. Tunggu Sinyal Keluar (Stop di sini sampai ada Ctrl+C)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
@@ -207,6 +244,8 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("Server forced to shutdown", "error", err)
 	}
+
+	grpcServer.GracefulStop()
 
 	logger.Info("Server stopped gracefully")
 }

@@ -20,6 +20,7 @@ coverage.html
 .vscode/
 *.swp
 *.swo
+.aiexclude
 
 # Environment variables (SANGAT PENTING!)
 .env

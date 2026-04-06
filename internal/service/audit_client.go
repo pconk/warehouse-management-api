@@ -5,29 +5,29 @@ import (
 	"log/slog"
 	"time"
 	"warehouse-management-api/internal/middleware"
-	pb "warehouse-management-api/internal/pb/audit"
+	pb_audit "warehouse-management-api/internal/pb/audit"
 
 	"google.golang.org/grpc"
 )
 
 type AuditClientInterface interface {
-	LogActivity(ctx context.Context, req *pb.AuditRequest)
+	LogActivity(ctx context.Context, req *pb_audit.AuditRequest)
 }
 
 type auditClient struct {
-	client pb.AuditServiceClient
+	client pb_audit.AuditServiceClient
 	logger *slog.Logger
 }
 
 func NewAuditClient(conn *grpc.ClientConn, logger *slog.Logger) AuditClientInterface {
 	return &auditClient{
-		client: pb.NewAuditServiceClient(conn),
+		client: pb_audit.NewAuditServiceClient(conn),
 		logger: logger,
 	}
 }
 
 // LogActivity mengirim log ke audit service menggunakan Goroutine (Fire-and-Forget)
-func (c *auditClient) LogActivity(ctx context.Context, req *pb.AuditRequest) {
+func (c *auditClient) LogActivity(ctx context.Context, req *pb_audit.AuditRequest) {
 	// Ambil requestID dari context asli sebelum goroutine dimulai
 	reqID := middleware.GetRequestID(ctx)
 	token := middleware.GetToken(ctx)

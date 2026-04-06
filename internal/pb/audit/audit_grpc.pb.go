@@ -4,10 +4,11 @@
 // - protoc             v7.34.1
 // source: proto/audit.proto
 
-package pb
+package audit
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
