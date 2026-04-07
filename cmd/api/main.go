@@ -25,6 +25,7 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
@@ -120,6 +121,14 @@ func main() {
 		cfg.AuditServiceURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(ForwardRequestIDInterceptor()),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  1 * time.Second,  // Tunggu 1 detik setelah gagal pertama
+				Multiplier: 1.6,              // Kenaikan delay
+				MaxDelay:   15 * time.Second, // Maksimal nunggu 15 detik (jangan kelamaan)
+			},
+			MinConnectTimeout: 20 * time.Second,
+		}),
 	)
 	if err != nil {
 		logger.Error("Failed to connect to Audit Service", "error", err)

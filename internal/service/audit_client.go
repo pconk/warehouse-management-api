@@ -8,6 +8,7 @@ import (
 	pb_audit "warehouse-management-api/internal/pb/audit"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 type AuditClientInterface interface {
@@ -26,7 +27,7 @@ func NewAuditClient(conn *grpc.ClientConn, logger *slog.Logger) AuditClientInter
 	}
 }
 
-// LogActivity mengirim log ke audit service menggunakan Goroutine (Fire-and-Forget)
+// LogActivity mengirim log ke audit service menggunakan Goroutine(Fire-and-Forget)
 func (c *auditClient) LogActivity(ctx context.Context, req *pb_audit.AuditRequest) {
 	// Ambil requestID dari context asli sebelum goroutine dimulai
 	reqID := middleware.GetRequestID(ctx)
@@ -45,7 +46,16 @@ func (c *auditClient) LogActivity(ctx context.Context, req *pb_audit.AuditReques
 		// 3. Panggil gRPC
 		_, err := c.client.LogActivity(asyncCtx, req)
 		if err != nil {
-			c.logger.Error("Audit Client: Failed to send log", "error", err)
+
+			var desc string
+			if st, ok := status.FromError(err); ok {
+				// Ambil Code dan Message
+				desc = st.Code().String()
+				// desc = st.Message()
+			} else {
+				desc = err.Error()
+			}
+			c.logger.Error("Audit Client: Failed to send log", "request_id", reqID, "error", desc)
 		}
 	}()
 }

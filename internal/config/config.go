@@ -45,7 +45,7 @@ func LoadConfig() (*AppConfig, error) {
 		RedisAddress:        getEnv("REDIS_ADDRESS", "localhost:6379"),
 		WarehouseID:         getEnv("WAREHOUSE_ID", "WH_001"),
 		QueueName:           getEnv("QUEUE_NAME", "email_jobs"),
-		AuditServiceURL:     getEnv("AUDIT_SERVICE_URL", "localhost:50051"),
+		AuditServiceURL:     getEnv("AUDIT_SERVICE_URL", "localhost:50052"),
 		JWTSecret:           getEnv("JWT_SECRET", "rahasia-super-aman"),
 		EnableLowStockAlert: getEnv("ENABLE_LOW_STOCK_ALERT", "true") == "true",
 		LowStockThreshold:   getEnvInt("LOW_STOCK_THRESHOLD", 5),

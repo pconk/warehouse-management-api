@@ -36,6 +36,7 @@ services:
     restart: always
     ports:
       - "8080:8080"
+      - "50053:50053"
     environment:
       REDIS_ADDRESS: warehouse-redis:6379
       ENABLE_LOW_STOCK_ALERT: "true"
@@ -48,6 +49,7 @@ services:
       DB_PASSWORD: "rootpassword"
       DB_NAME: warehouse_go
       API_PORT: 8080
+      GRPC_PORT: 50053
     depends_on:
       redis:
         condition: service_healthy

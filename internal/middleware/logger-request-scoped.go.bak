@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -10,46 +9,24 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-type contextKey string
-
 const (
-	LogFieldsKey contextKey = "log_fields"
+	LoggerKey    contextKey = "request_logger" // Key to store request-scoped logger
 	RequestIDKey contextKey = "request_id"
 )
 
-// logCollector membungkus slice attr agar thread-safe
-type logCollector struct {
-	// mu     sync.RWMutex
-	fields []slog.Attr
-}
-
-// AddLogFields memungkinkan middleware lain menambahkan field ke log utama
-func AddLogFields(ctx context.Context, fields ...slog.Attr) {
-	if v, ok := ctx.Value(LogFieldsKey).(*logCollector); ok {
-		// v.mu.Lock()
-		// defer v.mu.Unlock()
-		v.fields = append(v.fields, fields...)
+// GetLogger retrieves the request-scoped logger from the context, or the default logger if not found.
+func GetLogger(ctx context.Context, defaultLogger *slog.Logger) *slog.Logger {
+	if logger, ok := ctx.Value(LoggerKey).(*slog.Logger); ok {
+		return logger
 	}
+	return defaultLogger
 }
 
 func AddUserToLog(ctx context.Context, userID int64, username, role string) {
-	AddLogFields(ctx,
-		slog.String("user_id", fmt.Sprintf("%d", userID)),
-		slog.String("username", username),
-		slog.String("role", role))
-}
-
-// CreateTraceGroup menggabungkan request_id dan field tambahan ke dalam satu grup log trace
-func CreateTraceGroup(requestID string, collector *logCollector) slog.Attr {
-	// collector.mu.RLock()
-	// defer collector.mu.RUnlock()
-
-	traceAttrs := make([]any, 0, len(collector.fields)+1)
-	traceAttrs = append(traceAttrs, slog.String("request_id", requestID))
-	for _, attr := range collector.fields {
-		traceAttrs = append(traceAttrs, attr)
+	if logger, ok := ctx.Value(LoggerKey).(*slog.Logger); ok {
+		newLogger := logger.With(slog.Int64("user_id", userID), slog.String("username", username), slog.String("role", role))
+		ctx = context.WithValue(ctx, LoggerKey, newLogger)
 	}
-	return slog.Group("trace", traceAttrs...)
 }
 
 // WithRequestID menyuntikkan request ID ke dalam context secara manual
@@ -91,11 +68,15 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			// 1. Ambil Request ID yang sudah digenerate oleh chi.middleware.RequestID
 			requestID := GetRequestID(r.Context())
 
-			collector := &logCollector{fields: make([]slog.Attr, 0)}
-			ctx := context.WithValue(r.Context(), LogFieldsKey, collector)
+			// Create a request-scoped logger with initial trace attributes
+			requestLogger := logger.With(slog.String("request_id", requestID))
+			ctx := context.WithValue(r.Context(), LoggerKey, requestLogger)
 
 			// 4. Wrap ResponseWriter
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+			// Update the request context with the new logger
+			r = r.WithContext(ctx)
 
 			// 5. Jalankan Handler berikutnya
 			next.ServeHTTP(wrapped, r.WithContext(ctx))
@@ -109,8 +90,8 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			}
 
 			// 6. Log Terstruktur dengan slog + Request ID (Menggunakan AddLogFields dari middleware Auth)
-			logger.LogAttrs(r.Context(), level, "HTTP Request",
-				CreateTraceGroup(requestID, collector),
+			// Retrieve the potentially updated logger from context
+			GetLogger(r.Context(), logger).LogAttrs(r.Context(), level, "HTTP Request",
 				slog.Group("http",
 					slog.String("method", r.Method),
 					slog.String("path", r.URL.Path),
